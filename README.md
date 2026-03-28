@@ -97,6 +97,7 @@ The `TransporterLog` sheet is auto-created with these columns:
 
 | Version | File | Notes |
 |---------|------|-------|
+| v7 | index-v7.html | Add: login screen with admin/user1 accounts; Settings restricted to admin only; role badge in sidebar; Sign Out button |
 | v6 | index-v6.html | Fix: Apps Script URL hardcoded in file — works on all devices without configuration; Settings panel kept as admin override only |
 | v5 | index-v5.html | Fix: Settings screen to configure URLs in-browser; removed demo fallback that caused data loss; loadRecords never wipes existing data on failed refresh |
 | v4 | index-v4.html | Fix: action buttons (Edit/Start/Check Out) now have type="button"; auto-refresh paused while modal open; Escape key only closes QR modal not data-entry modals; sortBy uses safe element reference not global event |

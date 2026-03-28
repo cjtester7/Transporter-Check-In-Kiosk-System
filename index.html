@@ -591,6 +591,107 @@ tbody td.muted { color: var(--muted); }
   color: var(--muted);
 }
 
+/* Role badge */
+.role-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+.role-admin { background: rgba(240,180,41,0.15); color: var(--accent); }
+.role-user  { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+/* Login screen */
+.login-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.login-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 380px;
+}
+.login-brand {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 2.2rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  text-align: center;
+  margin-bottom: 4px;
+}
+.login-sub {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.login-field { margin-bottom: 14px; }
+.login-field label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 7px;
+}
+.login-field input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-field input:focus { border-color: var(--accent); }
+.login-error {
+  background: rgba(239,68,68,0.1);
+  border: 1.5px solid rgba(239,68,68,0.3);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.83rem;
+  color: #f87171;
+  margin-bottom: 14px;
+  display: none;
+}
+.login-error.show { display: block; }
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: opacity 0.15s;
+}
+.login-btn:hover { opacity: 0.88; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .sidebar { display: none; }
@@ -606,6 +707,24 @@ tbody td.muted { color: var(--muted); }
 </style>
 </head>
 <body>
+
+<!-- Login Screen -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">CARS<span style="color:#fff">RUS</span></div>
+    <div class="login-sub">Gate Operations — Staff Login</div>
+    <div class="login-error" id="loginError">Incorrect username or password.</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
+    </div>
+    <button type="button" class="login-btn" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
 
 <!-- Settings Modal -->
 <div class="modal-overlay" id="settingsModal">
@@ -844,7 +963,7 @@ tbody td.muted { color: var(--muted); }
       <div class="nav-item" onclick="loadRecords()">
         <span class="icon">↺</span> Refresh
       </div>
-      <div class="nav-item" onclick="openSettingsModal()">
+      <div class="nav-item" id="nav-settings" style="display:none" onclick="openSettingsModal()">
         <span class="icon">⚙</span> Settings
       </div>
     </div>
@@ -852,9 +971,10 @@ tbody td.muted { color: var(--muted); }
     <div class="sidebar-footer">
       <div class="employee-badge">
         <div class="emp-name" id="sb-empName">Employee</div>
-        <div class="emp-role">Gate Staff</div>
+        <div class="emp-role" id="sb-empRole">Gate Staff</div>
+        <div id="sb-roleBadge" class="role-badge"></div>
       </div>
-      <button class="qr-btn" onclick="promptEmployeeName()">Change Employee</button>
+      <button class="qr-btn" onclick="doLogout()" style="margin-top:8px;border-color:var(--red);color:var(--red)">Sign Out</button>
     </div>
   </div>
 
@@ -954,14 +1074,16 @@ tbody td.muted { color: var(--muted); }
 
 <script>
 // ========== CONFIG ==========
-// Set your URLs here — these are the defaults used on every device automatically.
-// The Settings panel (sidebar) can override these per-browser if needed.
-const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxO7-rqLOruCVMI6PLvmdzbQe-N6idW1kZKii3ApAluNmlWVj66jqNuRpwyoJZYvBhTlg/exec";
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHY5OmaTspxsqiGK_1N-Mzv0gv6I1QsJSFD9PUIIITstYOBPG2RySziZZ2oprFspjyAw/exec";
 const DEFAULT_CHECKIN_URL = "YOUR_CHECKIN_URL_HERE";
-
-// Use hardcoded defaults; localStorage override only if an admin has set one
 let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || DEFAULT_APPS_SCRIPT_URL;
 let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || DEFAULT_CHECKIN_URL;
+
+// ========== USERS ==========
+const USERS = [
+  { username: 'admin', password: '1234', role: 'admin', displayName: 'Admin' },
+  { username: 'user1', password: 'user1', role: 'user',  displayName: 'User 1' }
+];
 
 // ========== STATE ==========
 let allRecords = [];
@@ -971,15 +1093,71 @@ let currentFilter = 'All';
 let sortField = 'Queue Position';
 let sortAsc = true;
 let selectedRowId = null;
-let employeeName = localStorage.getItem('carsrus_employee') || 'Employee';
+let currentUser = null;
+
+// ========== AUTH ==========
+function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+  const password = document.getElementById('loginPassword').value;
+  const err = document.getElementById('loginError');
+
+  const user = USERS.find(u => u.username === username && u.password === password);
+  if (!user) {
+    err.classList.add('show');
+    document.getElementById('loginPassword').value = '';
+    return;
+  }
+  err.classList.remove('show');
+  currentUser = user;
+  sessionStorage.setItem('carsrus_user', JSON.stringify(user));
+  applyUserSession();
+  document.getElementById('loginScreen').style.display = 'none';
+  loadRecords();
+}
+
+function doLogout() {
+  currentUser = null;
+  sessionStorage.removeItem('carsrus_user');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function applyUserSession() {
+  // Sidebar user info
+  document.getElementById('sb-empName').textContent = currentUser.displayName;
+  document.getElementById('sb-empRole').textContent = currentUser.role === 'admin' ? 'Administrator' : 'Gate Staff';
+  const badge = document.getElementById('sb-roleBadge');
+  badge.textContent = currentUser.role === 'admin' ? 'Admin' : 'User';
+  badge.className = 'role-badge ' + (currentUser.role === 'admin' ? 'role-admin' : 'role-user');
+
+  // Settings nav only visible to admin
+  document.getElementById('nav-settings').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+
+  // Pre-fill Signed In By with display name
+  document.getElementById('ci-signedInBy').value = currentUser.displayName;
+}
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('sb-empName').textContent = employeeName;
-  document.getElementById('ci-signedInBy').value = employeeName;
-  loadRecords();
+  // Restore session if still active (page refresh)
+  const saved = sessionStorage.getItem('carsrus_user');
+  if (saved) {
+    currentUser = JSON.parse(saved);
+    applyUserSession();
+    document.getElementById('loginScreen').style.display = 'none';
+    loadRecords();
+  }
+
+  // Enter key on login fields
+  ['loginUsername','loginPassword'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+  });
+
   setInterval(() => {
-    // Don't refresh while employee is actively filling in a modal
+    if (!currentUser) return;
     const modalOpen = ['checkinModal','checkoutModal','editModal']
       .some(id => document.getElementById(id).classList.contains('open'));
     if (!modalOpen) loadRecords();
@@ -1177,7 +1355,7 @@ function openCheckinModal() {
   document.getElementById('ci-pickup').value = 0;
   document.getElementById('ci-vehicleTypes').value = '';
   document.getElementById('ci-comments').value = '';
-  document.getElementById('ci-signedInBy').value = employeeName;
+  document.getElementById('ci-signedInBy').value = currentUser ? currentUser.displayName : '';
   openModal('checkinModal');
   setTimeout(() => document.getElementById('ci-driverName').focus(), 100);
 }
@@ -1191,7 +1369,7 @@ function openCheckoutModal(rowId) {
       <span style="color:var(--muted)">Checked in: ${esc(r['Time In'])} &bull; Queue #${r['Queue Position']}</span>
     `;
   }
-  document.getElementById('co-signedOutBy').value = employeeName;
+  document.getElementById('co-signedOutBy').value = currentUser ? currentUser.displayName : '';
   openModal('checkoutModal');
   setTimeout(() => document.getElementById('co-signedOutBy').focus(), 100);
 }
@@ -1337,6 +1515,10 @@ async function setStatus(rowId, status) {
 
 // ========== SETTINGS ==========
 function openSettingsModal() {
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('⚠ Settings are restricted to admin only.', 'error');
+    return;
+  }
   document.getElementById('st-scriptUrl').value = APPS_SCRIPT_URL;
   document.getElementById('st-checkinUrl').value = CHECKIN_URL;
   openModal('settingsModal');
@@ -1356,18 +1538,6 @@ function saveSettings() {
   closeModal('settingsModal');
   showToast('✓ Settings saved. Connecting to Google Sheet…', 'success');
   loadRecords();
-}
-
-// ========== EMPLOYEE ==========
-function promptEmployeeName() {
-  const name = prompt('Enter your name or employee ID:', employeeName);
-  if (name && name.trim()) {
-    employeeName = name.trim();
-    localStorage.setItem('carsrus_employee', employeeName);
-    document.getElementById('sb-empName').textContent = employeeName;
-    document.getElementById('ci-signedInBy').value = employeeName;
-    showToast(`Employee set to: ${employeeName}`, 'success');
-  }
 }
 
 // ========== UTILS ==========
