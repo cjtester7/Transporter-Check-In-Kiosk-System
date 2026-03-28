@@ -23,8 +23,24 @@
   --radius: 10px;
   --sidebar-w: 220px;
 }
+/* Light theme */
+body.light {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --surface2: #e8ebf0;
+  --border: #d0d5de;
+  --text: #1a1f2e;
+  --muted: #6b7280;
+}
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; font-size: 15px; }
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 15px;
+  transition: background 0.2s, color 0.2s;
+}
 
 /* ===== LAYOUT ===== */
 .app { display: flex; height: 100vh; overflow: hidden; }
@@ -591,6 +607,21 @@ tbody td.muted { color: var(--muted); }
   color: var(--muted);
 }
 
+.btn-icon {
+  padding: 7px 12px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: 'Barlow', sans-serif;
+}
+.btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+
 /* Role badge */
 .role-badge {
   display: inline-block;
@@ -771,15 +802,9 @@ tbody td.muted { color: var(--muted); }
         <label>Driver Name <span class="req">*</span></label>
         <input type="text" id="ci-driverName" placeholder="Full name">
       </div>
-      <div class="m-row">
-        <div class="m-field">
-          <label>Driver Phone <span class="req">*</span></label>
-          <input type="tel" id="ci-driverPhone" placeholder="(555) 000-0000">
-        </div>
-        <div class="m-field">
-          <label>Lane</label>
-          <input type="text" id="ci-lane" placeholder="e.g. A3">
-        </div>
+      <div class="m-field">
+        <label>Driver Phone <span class="req">*</span></label>
+        <input type="tel" id="ci-driverPhone" placeholder="(555) 000-0000">
       </div>
       <div class="m-divider"></div>
       <div class="m-section-label">Carrier Information</div>
@@ -794,7 +819,21 @@ tbody td.muted { color: var(--muted); }
         </div>
       </div>
       <div class="m-divider"></div>
-      <div class="m-section-label">Load Details</div>
+      <div class="m-section-label">Gate & Load Details</div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Gate</label>
+          <select id="ci-gate">
+            <option value="">Unassigned</option>
+            <option value="Gate 1">Gate 1</option>
+            <option value="Gate 2">Gate 2</option>
+          </select>
+        </div>
+        <div class="m-field">
+          <label>Lane</label>
+          <input type="text" id="ci-lane" placeholder="e.g. A3">
+        </div>
+      </div>
       <div class="m-row">
         <div class="m-field">
           <label>Drop Off #</label>
@@ -864,17 +903,25 @@ tbody td.muted { color: var(--muted); }
     <div class="modal-body">
       <div class="m-row">
         <div class="m-field">
+          <label>Gate</label>
+          <select id="ed-gate">
+            <option value="">Unassigned</option>
+            <option value="Gate 1">Gate 1</option>
+            <option value="Gate 2">Gate 2</option>
+          </select>
+        </div>
+        <div class="m-field">
           <label>Lane</label>
           <input type="text" id="ed-lane" placeholder="e.g. A3">
         </div>
-        <div class="m-field">
-          <label>Status</label>
-          <select id="ed-status">
-            <option>Waiting</option>
-            <option>In Progress</option>
-            <option>Completed</option>
-          </select>
-        </div>
+      </div>
+      <div class="m-field">
+        <label>Status</label>
+        <select id="ed-status">
+          <option>Waiting</option>
+          <option>In Progress</option>
+          <option>Completed</option>
+        </select>
       </div>
       <div class="m-row">
         <div class="m-field">
@@ -992,6 +1039,8 @@ tbody td.muted { color: var(--muted); }
         <input class="search-input" type="text" id="searchInput" placeholder="Search drivers, carriers…" oninput="filterRecords()">
       </div>
       <div class="topbar-right">
+        <button type="button" class="btn-icon" onclick="exportCSV()" title="Export to CSV">⬇ CSV</button>
+        <button type="button" class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
         <div class="view-toggle">
           <button class="view-btn active" id="btn-list" onclick="setView('list')">☰ List</button>
           <button class="view-btn" id="btn-card" onclick="setView('card')">⊞ Cards</button>
@@ -1053,6 +1102,7 @@ tbody td.muted { color: var(--muted); }
                 <th onclick="sortBy('Pickup', this)">Pick <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Status', this)">Status <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Vehicle Types', this)">Type <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Gate', this)">Gate <span class="sort-arrow">↕</span></th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -1140,6 +1190,9 @@ function applyUserSession() {
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
+  // Restore theme preference
+  applyTheme();
+
   // Restore session if still active (page refresh)
   const saved = sessionStorage.getItem('carsrus_user');
   if (saved) {
@@ -1272,6 +1325,7 @@ function renderTable() {
       <td style="text-align:center">${r['Pickup'] || 0}</td>
       <td><span class="status-badge ${statusClass}">${esc(r['Status'])}</span></td>
       <td class="muted" style="font-size:0.78rem">${esc(r['Vehicle Types'] || '—')}</td>
+      <td class="muted">${esc(r['Gate'] || '—')}</td>
       <td><div class="row-actions">${actions}</div></td>
     </tr>`;
   }).join('');
@@ -1306,6 +1360,7 @@ function renderCards() {
         <div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">${r['Pickup'] || 0}</div></div>
         <div class="card-field"><div class="cf-label">Lane</div><div class="cf-val">${esc(r['Lane'] || '—')}</div></div>
         <div class="card-field"><div class="cf-label">Types</div><div class="cf-val" style="font-size:0.78rem">${esc(r['Vehicle Types'] || '—')}</div></div>
+        <div class="card-field"><div class="cf-label">Gate</div><div class="cf-val">${esc(r['Gate'] || '—')}</div></div>
       </div>
       ${r['Comments'] ? `<div style="font-size:0.78rem;color:var(--muted);padding:8px 0;border-top:1px solid var(--border);margin-top:4px">${esc(r['Comments'])}</div>` : ''}
       <div class="card-actions">${actions}</div>
@@ -1350,6 +1405,7 @@ function openCheckinModal() {
   document.getElementById('ci-driverPhone').value = '';
   document.getElementById('ci-carrier').value = '';
   document.getElementById('ci-carrierPhone').value = '';
+  document.getElementById('ci-gate').value = '';
   document.getElementById('ci-lane').value = '';
   document.getElementById('ci-dropOff').value = 0;
   document.getElementById('ci-pickup').value = 0;
@@ -1378,6 +1434,7 @@ function openEditModal(rowId) {
   selectedRowId = rowId;
   const r = allRecords.find(x => x['Row ID'] === rowId);
   if (r) {
+    document.getElementById('ed-gate').value = r['Gate'] || '';
     document.getElementById('ed-lane').value = r['Lane'] || '';
     document.getElementById('ed-status').value = r['Status'] || 'Waiting';
     document.getElementById('ed-dropOff').value = r['Drop Off'] || 0;
@@ -1429,6 +1486,7 @@ async function submitCheckin() {
       "Driver Phone": phone,
       "Carrier": carrier,
       "Carrier Phone": document.getElementById('ci-carrierPhone').value.trim(),
+      "Gate": document.getElementById('ci-gate').value,
       "Lane": document.getElementById('ci-lane').value.trim(),
       "Drop Off": document.getElementById('ci-dropOff').value,
       "Pickup": document.getElementById('ci-pickup').value,
@@ -1469,6 +1527,7 @@ async function submitEdit() {
     await callScript({
       action: "updateRecord",
       "rowId": selectedRowId,
+      "Gate": document.getElementById('ed-gate').value,
       "Lane": document.getElementById('ed-lane').value.trim(),
       "Status": document.getElementById('ed-status').value,
       "Drop Off": document.getElementById('ed-dropOff').value,
@@ -1487,7 +1546,13 @@ async function submitEdit() {
 async function setStatus(rowId, status) {
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
+    // Update local record immediately so card view reflects change without waiting for reload
+    const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
+    if (idx !== -1) allRecords[idx]['Status'] = status;
+    filterRecords();
+    updateStats();
     showToast(`✓ Status updated to ${status}`, 'success');
+    // Then do a full reload in background to sync any other changes
     loadRecords();
   } catch (err) {
     showToast(`✗ Status update failed: ${err.message}`, 'error');
@@ -1519,6 +1584,67 @@ function saveSettings() {
   closeModal('settingsModal');
   showToast('✓ Settings saved. Connecting to Google Sheet…', 'success');
   loadRecords();
+}
+
+// ========== THEME ==========
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  localStorage.setItem('carsrus_theme', isLight ? 'light' : 'dark');
+  document.getElementById('themeToggle').textContent = isLight ? '🌑' : '🌙';
+}
+
+function applyTheme() {
+  const saved = localStorage.getItem('carsrus_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeToggle').textContent = '🌑';
+  }
+}
+
+// ========== CSV EXPORT ==========
+function exportCSV() {
+  if (!allRecords.length) {
+    showToast('No records to export.', 'error');
+    return;
+  }
+
+  const columns = [
+    'Date', 'Driver Name', 'Driver Phone', 'Carrier', 'Carrier Phone',
+    'Gate', 'Lane', 'Time In', 'Time Out', 'Drop Off', 'Pickup',
+    'Status', 'Vehicle Types', 'Comments', 'Queue Position',
+    'Est. Wait (min)', 'Signed In By', 'Signed Out By', 'Row ID'
+  ];
+
+  const escape = val => {
+    const s = String(val ?? '');
+    return s.includes(',') || s.includes('"') || s.includes('\n')
+      ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+
+  const rows = [
+    columns.join(','),
+    ...allRecords.map(r => columns.map(c => escape(r[c])).join(','))
+  ];
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${pad(now.getMonth()+1)}${pad(now.getDate())}${now.getFullYear()}`;
+  const timeStr = `${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const filename = `transporter-log-${dateStr}-${timeStr}.csv`;
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 250);
+  showToast(`✓ Exported as ${filename}`, 'success');
 }
 
 // ========== UTILS ==========

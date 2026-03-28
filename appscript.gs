@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v4.gs
+// Version: appscript-v6.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -11,18 +11,19 @@ const SHEET_NAME = "TransporterLog";
 const HEADERS = [
   "Date", "Driver Name", "Driver Phone", "Carrier", "Carrier Phone",
   "Lane", "Time In", "Time Out", "Drop Off", "Pickup",
-  "Status", "Vehicle Types", "Comments", "Queue Position",
+  "Status", "Vehicle Types", "Comments", "Gate", "Queue Position",
   "Est. Wait (min)", "Signed In By", "Signed Out By", "Row ID"
 ];
+
+// Column index map (0-based) — update if HEADERS order changes
+const COL = {};
+HEADERS.forEach((h, i) => COL[h] = i);
 
 function doGet(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
-
   try {
     const params = e.parameter || {};
-
-    // Support both ?action=getAll and ?data={"action":"checkIn",...}
     let action, body;
     if (params.data) {
       body = JSON.parse(params.data);
@@ -31,7 +32,6 @@ function doGet(e) {
       action = params.action;
       body = params;
     }
-
     let result;
     switch (action) {
       case "getAll":       result = getAllRecords(); break;
@@ -46,11 +46,9 @@ function doGet(e) {
   } catch (err) {
     output.setContent(JSON.stringify({ error: err.message }));
   }
-
   return output;
 }
 
-// Keep doPost for compatibility
 function doPost(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
@@ -97,7 +95,9 @@ function getAllRecords() {
   const records = data.slice(1).map((row, i) => {
     const obj = {};
     headers.forEach((h, j) => {
-      obj[h] = row[j] instanceof Date ? Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy") : row[j];
+      obj[h] = row[j] instanceof Date
+        ? Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy")
+        : row[j];
     });
     obj._rowIndex = i + 2;
     return obj;
@@ -111,30 +111,37 @@ function checkIn(data) {
   const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy");
   const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "hh:mm a");
   const allData = sheet.getDataRange().getValues();
-  const activeRows = allData.slice(1).filter(r => r[10] === "Waiting" || r[10] === "In Progress");
+  const activeRows = allData.slice(1).filter(r => r[COL["Status"]] === "Waiting" || r[COL["Status"]] === "In Progress");
   const queuePos = activeRows.length + 1;
   const estWait = (queuePos - 1) * 20;
   const rowId = "CR-" + now.getTime() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
-  const row = [
-    dateStr,
-    data["Driver Name"] || "",
-    data["Driver Phone"] || "",
-    data["Carrier"] || "",
-    data["Carrier Phone"] || "",
-    data["Lane"] || "",
-    timeStr,
-    "",
-    data["Drop Off"] || 0,
-    data["Pickup"] || 0,
-    "Waiting",
-    data["Vehicle Types"] || "",
-    data["Comments"] || "",
-    queuePos,
-    estWait,
-    data["Signed In By"] || "Self",
-    "",
-    rowId
-  ];
+
+  // Build row using HEADERS order so columns always align
+  const row = HEADERS.map(h => {
+    switch(h) {
+      case "Date":           return dateStr;
+      case "Driver Name":    return data["Driver Name"] || "";
+      case "Driver Phone":   return data["Driver Phone"] || "";
+      case "Carrier":        return data["Carrier"] || "";
+      case "Carrier Phone":  return data["Carrier Phone"] || "";
+      case "Gate":           return data["Gate"] || "";
+      case "Lane":           return data["Lane"] || "";
+      case "Time In":        return timeStr;
+      case "Time Out":       return "";
+      case "Drop Off":       return data["Drop Off"] || 0;
+      case "Pickup":         return data["Pickup"] || 0;
+      case "Status":         return "Waiting";
+      case "Vehicle Types":  return data["Vehicle Types"] || "";
+      case "Comments":       return data["Comments"] || "";
+      case "Queue Position": return queuePos;
+      case "Est. Wait (min)":return estWait;
+      case "Signed In By":   return data["Signed In By"] || "Self";
+      case "Signed Out By":  return "";
+      case "Row ID":         return rowId;
+      default:               return "";
+    }
+  });
+
   sheet.appendRow(row);
   return { success: true, rowId, queuePosition: queuePos, estWait, timeIn: timeStr };
 }
@@ -144,13 +151,13 @@ function checkOut(data) {
   const allData = sheet.getDataRange().getValues();
   const rowId = data["rowId"] || data["Row ID"];
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][17] == rowId) {
+    if (allData[i][COL["Row ID"]] == rowId) {
       const now = new Date();
       const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "hh:mm a");
       const rowNum = i + 1;
-      sheet.getRange(rowNum, 8).setValue(timeStr);
-      sheet.getRange(rowNum, 11).setValue("Completed");
-      sheet.getRange(rowNum, 17).setValue(data["Signed Out By"] || "");
+      sheet.getRange(rowNum, COL["Time Out"] + 1).setValue(timeStr);
+      sheet.getRange(rowNum, COL["Status"] + 1).setValue("Completed");
+      sheet.getRange(rowNum, COL["Signed Out By"] + 1).setValue(data["Signed Out By"] || "");
       return { success: true, timeOut: timeStr };
     }
   }
@@ -160,10 +167,9 @@ function checkOut(data) {
 function updateStatus(data) {
   const sheet = getSheet();
   const allData = sheet.getDataRange().getValues();
-  const rowId = data["rowId"];
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][17] == rowId) {
-      sheet.getRange(i + 1, 11).setValue(data["status"]);
+    if (allData[i][COL["Row ID"]] == data["rowId"]) {
+      sheet.getRange(i + 1, COL["Status"] + 1).setValue(data["status"]);
       return { success: true };
     }
   }
@@ -173,16 +179,13 @@ function updateStatus(data) {
 function updateRecord(data) {
   const sheet = getSheet();
   const allData = sheet.getDataRange().getValues();
-  const rowId = data["rowId"];
-  const headers = allData[0];
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][17] == rowId) {
+    if (allData[i][COL["Row ID"]] == data["rowId"]) {
       const rowNum = i + 1;
-      const updatable = ["Lane", "Drop Off", "Pickup", "Comments", "Vehicle Types", "Status"];
+      const updatable = ["Gate", "Lane", "Drop Off", "Pickup", "Comments", "Vehicle Types", "Status"];
       updatable.forEach(field => {
         if (data[field] !== undefined) {
-          const colIndex = headers.indexOf(field) + 1;
-          if (colIndex > 0) sheet.getRange(rowNum, colIndex).setValue(data[field]);
+          sheet.getRange(rowNum, COL[field] + 1).setValue(data[field]);
         }
       });
       return { success: true };
@@ -193,7 +196,7 @@ function updateRecord(data) {
 
 function getQueueInfo() {
   const allData = getSheet().getDataRange().getValues();
-  const active = allData.slice(1).filter(r => r[10] === "Waiting" || r[10] === "In Progress");
+  const active = allData.slice(1).filter(r => r[COL["Status"]] === "Waiting" || r[COL["Status"]] === "In Progress");
   return {
     queueLength: active.length,
     nextPosition: active.length + 1,
