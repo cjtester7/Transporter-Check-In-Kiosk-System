@@ -616,7 +616,7 @@ tbody td.muted { color: var(--muted); }
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">New Check-In</span>
-      <button class="modal-close" onclick="closeModal('checkinModal')">✕</button>
+      <button type="button" class="modal-close" onclick="closeModal('checkinModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="m-section-label">Driver Information</div>
@@ -679,8 +679,8 @@ tbody td.muted { color: var(--muted); }
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn secondary" onclick="closeModal('checkinModal')">Cancel</button>
-      <button class="modal-btn primary" onclick="submitCheckin()">✓ Check In</button>
+      <button type="button" class="modal-btn secondary" onclick="closeModal('checkinModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" onclick="submitCheckin()">✓ Check In</button>
     </div>
   </div>
 </div>
@@ -690,7 +690,7 @@ tbody td.muted { color: var(--muted); }
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Check Out</span>
-      <button class="modal-close" onclick="closeModal('checkoutModal')">✕</button>
+      <button type="button" class="modal-close" onclick="closeModal('checkoutModal')">✕</button>
     </div>
     <div class="modal-body">
       <div id="co-driverInfo" style="background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:16px;font-size:0.88rem;color:var(--muted)">
@@ -701,8 +701,8 @@ tbody td.muted { color: var(--muted); }
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn secondary" onclick="closeModal('checkoutModal')">Cancel</button>
-      <button class="modal-btn primary" style="background:var(--green);color:#000" onclick="submitCheckout()">✓ Confirm Check Out</button>
+      <button type="button" class="modal-btn secondary" onclick="closeModal('checkoutModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" style="background:var(--green);color:#000" onclick="submitCheckout()">✓ Confirm Check Out</button>
     </div>
   </div>
 </div>
@@ -712,7 +712,7 @@ tbody td.muted { color: var(--muted); }
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">Edit Record</span>
-      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+      <button type="button" class="modal-close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="m-row">
@@ -756,8 +756,8 @@ tbody td.muted { color: var(--muted); }
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn secondary" onclick="closeModal('editModal')">Cancel</button>
-      <button class="modal-btn primary" onclick="submitEdit()">Save Changes</button>
+      <button type="button" class="modal-btn secondary" onclick="closeModal('editModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" onclick="submitEdit()">Save Changes</button>
     </div>
   </div>
 </div>
@@ -767,7 +767,7 @@ tbody td.muted { color: var(--muted); }
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
       <span class="modal-title">Self Check-In QR Code</span>
-      <button class="modal-close" onclick="closeModal('qrModal')">✕</button>
+      <button type="button" class="modal-close" onclick="closeModal('qrModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="qr-display">
@@ -779,8 +779,8 @@ tbody td.muted { color: var(--muted); }
       </div>
     </div>
     <div class="modal-footer">
-      <button class="modal-btn secondary" onclick="closeModal('qrModal')">Close</button>
-      <button class="modal-btn primary" onclick="window.print()">Print</button>
+      <button type="button" class="modal-btn secondary" onclick="closeModal('qrModal')">Close</button>
+      <button type="button" class="modal-btn primary" onclick="window.print()">Print</button>
     </div>
   </div>
 </div>
@@ -1381,10 +1381,21 @@ function showToast(msg, type = 'success') {
   });
 });
 
-// Keyboard shortcut: Escape closes modals
+// Keyboard shortcuts
 document.addEventListener('keydown', e => {
+  // Escape closes modals
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+  // Block Enter from submitting inside any modal - move focus to next field instead
+  if (e.key === 'Enter' && e.target.closest('.modal-overlay')) {
+    const tag = e.target.tagName.toLowerCase();
+    if (tag === 'input' || tag === 'select') {
+      e.preventDefault();
+      const focusable = Array.from(e.target.closest('.modal').querySelectorAll('input, select, textarea, button'));
+      const idx = focusable.indexOf(e.target);
+      if (idx !== -1 && idx < focusable.length - 1) focusable[idx + 1].focus();
+    }
   }
 });
 </script>
