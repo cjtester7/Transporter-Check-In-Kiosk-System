@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v7.gs
+// Version: appscript-v8.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -90,8 +90,9 @@ function getSheet() {
 function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { records: [] };
+  if (data.length <= 1) return { records: [], _v: 8 };
   const headers = data[0];
+  const tz = Session.getScriptTimeZone();
   const timeColumns = ["Time In", "Time Out"];
   const dateColumns = ["Date"];
   const records = data.slice(1).map((row, i) => {
@@ -99,11 +100,11 @@ function getAllRecords() {
     headers.forEach((h, j) => {
       if (row[j] instanceof Date) {
         if (timeColumns.includes(h)) {
-          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "hh:mm a");
+          obj[h] = Utilities.formatDate(row[j], tz, "hh:mm a");
         } else if (dateColumns.includes(h)) {
-          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy");
+          obj[h] = Utilities.formatDate(row[j], tz, "MM/dd/yyyy");
         } else {
-          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy hh:mm a");
+          obj[h] = Utilities.formatDate(row[j], tz, "MM/dd/yyyy hh:mm a");
         }
       } else {
         obj[h] = row[j];
@@ -112,7 +113,7 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-  return { records };
+  return { records, _v: 8 };
 }
 
 function checkIn(data) {
