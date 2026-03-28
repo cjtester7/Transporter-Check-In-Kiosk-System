@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v6.gs
+// Version: appscript-v7.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -92,12 +92,22 @@ function getAllRecords() {
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { records: [] };
   const headers = data[0];
+  const timeColumns = ["Time In", "Time Out"];
+  const dateColumns = ["Date"];
   const records = data.slice(1).map((row, i) => {
     const obj = {};
     headers.forEach((h, j) => {
-      obj[h] = row[j] instanceof Date
-        ? Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy")
-        : row[j];
+      if (row[j] instanceof Date) {
+        if (timeColumns.includes(h)) {
+          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "hh:mm a");
+        } else if (dateColumns.includes(h)) {
+          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy");
+        } else {
+          obj[h] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy hh:mm a");
+        }
+      } else {
+        obj[h] = row[j];
+      }
     });
     obj._rowIndex = i + 2;
     return obj;
