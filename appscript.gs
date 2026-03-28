@@ -1,6 +1,12 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v1.gs
+// Version: appscript-v3.gs
 // Deploy as Web App: Execute as Me, Anyone can access
+
+// ============================================================
+// CONFIGURATION — paste your Google Sheet URL here
+// (copy the full URL from your browser address bar)
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit";;
+// ============================================================
 
 const SHEET_NAME = "TransporterLog";
 const HEADERS = [
@@ -46,13 +52,12 @@ function handleRequest(e) {
 }
 
 function getSheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openByUrl(SHEET_URL);
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow(HEADERS);
     sheet.setFrozenRows(1);
-    // Style header row
     const headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
     headerRange.setBackground("#1a1a2e");
     headerRange.setFontColor("#ffffff");
@@ -72,7 +77,7 @@ function getAllRecords() {
     headers.forEach((h, j) => {
       obj[h] = row[j] instanceof Date ? Utilities.formatDate(row[j], Session.getScriptTimeZone(), "MM/dd/yyyy") : row[j];
     });
-    obj._rowIndex = i + 2; // 1-indexed, +1 for header
+    obj._rowIndex = i + 2;
     return obj;
   });
 
@@ -85,32 +90,31 @@ function checkIn(data) {
   const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy");
   const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "hh:mm a");
 
-  // Calculate queue position
   const allData = sheet.getDataRange().getValues();
   const activeRows = allData.slice(1).filter(r => r[10] === "Waiting" || r[10] === "In Progress");
   const queuePos = activeRows.length + 1;
-  const estWait = (queuePos - 1) * 20; // 20 min per transporter estimate
+  const estWait = (queuePos - 1) * 20;
 
-  const rowId = "CR-" + now.getTime();
+  const rowId = "CR-" + now.getTime() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
   const row = [
-    dateStr,                           // Date
-    data["Driver Name"] || "",         // Driver Name
-    data["Driver Phone"] || "",        // Driver Phone
-    data["Carrier"] || "",             // Carrier
-    data["Carrier Phone"] || "",       // Carrier Phone
-    data["Lane"] || "",                // Lane
-    timeStr,                           // Time In
-    "",                                // Time Out
-    data["Drop Off"] || 0,             // Drop Off
-    data["Pickup"] || 0,               // Pickup
-    "Waiting",                         // Status
-    data["Vehicle Types"] || "",       // Vehicle Types
-    data["Comments"] || "",            // Comments
-    queuePos,                          // Queue Position
-    estWait,                           // Est. Wait
-    data["Signed In By"] || "Self",    // Signed In By
-    "",                                // Signed Out By
-    rowId                              // Row ID
+    dateStr,
+    data["Driver Name"] || "",
+    data["Driver Phone"] || "",
+    data["Carrier"] || "",
+    data["Carrier Phone"] || "",
+    data["Lane"] || "",
+    timeStr,
+    "",
+    data["Drop Off"] || 0,
+    data["Pickup"] || 0,
+    "Waiting",
+    data["Vehicle Types"] || "",
+    data["Comments"] || "",
+    queuePos,
+    estWait,
+    data["Signed In By"] || "Self",
+    "",
+    rowId
   ];
 
   sheet.appendRow(row);
@@ -123,13 +127,13 @@ function checkOut(data) {
   const rowId = data["rowId"] || data["Row ID"];
 
   for (let i = 1; i < allData.length; i++) {
-    if (allData[i][17] == rowId) { // Row ID is index 17
+    if (allData[i][17] == rowId) {
       const now = new Date();
       const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "hh:mm a");
       const rowNum = i + 1;
-      sheet.getRange(rowNum, 8).setValue(timeStr);        // Time Out
-      sheet.getRange(rowNum, 11).setValue("Completed");   // Status
-      sheet.getRange(rowNum, 17).setValue(data["Signed Out By"] || ""); // Signed Out By
+      sheet.getRange(rowNum, 8).setValue(timeStr);
+      sheet.getRange(rowNum, 11).setValue("Completed");
+      sheet.getRange(rowNum, 17).setValue(data["Signed Out By"] || "");
       return { success: true, timeOut: timeStr };
     }
   }
@@ -159,7 +163,6 @@ function updateRecord(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][17] == rowId) {
       const rowNum = i + 1;
-      // Update allowed fields
       const updatable = ["Lane", "Drop Off", "Pickup", "Comments", "Vehicle Types", "Status"];
       updatable.forEach(field => {
         if (data[field] !== undefined) {
