@@ -1246,11 +1246,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // ========== DATA ==========
 
 // Formats a raw value from Google Sheets into a readable date or time string.
-// Handles both ISO strings (e.g. "1899-12-30T18:52:00.000Z") and already-formatted strings.
+// Extracts values directly from the ISO string to avoid timezone shift issues.
 function formatSheetDate(val) {
   if (!val) return '';
+  // Already formatted as MM/DD/YYYY — return as-is
+  if (typeof val === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(val)) return val;
+  // Parse ISO string directly — extract date part without timezone conversion
+  if (typeof val === 'string' && val.includes('T')) {
+    // For dates like 2026-03-28T04:00:00.000Z, use the date portion only
+    const parts = val.split('T')[0].split('-');
+    if (parts.length === 3) return `${parts[1]}/${parts[2]}/${parts[0]}`;
+  }
   const d = new Date(val);
-  if (isNaN(d.getTime())) return val; // Not a date — return as-is
+  if (isNaN(d.getTime())) return val;
   return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 }
 
@@ -1258,6 +1266,18 @@ function formatSheetTime(val) {
   if (!val) return '';
   // Already formatted (e.g. "09:52 AM") — return as-is
   if (typeof val === 'string' && /^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(val)) return val;
+  // Parse ISO string directly — extract UTC time to avoid local timezone shift
+  if (typeof val === 'string' && val.includes('T')) {
+    const timePart = val.split('T')[1]; // e.g. "18:52:00.000Z"
+    if (timePart) {
+      const [hStr, mStr] = timePart.split(':');
+      let h = parseInt(hStr, 10);
+      const m = mStr.padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+    }
+  }
   const d = new Date(val);
   if (isNaN(d.getTime())) return val;
   return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
