@@ -607,6 +607,34 @@ tbody td.muted { color: var(--muted); }
 </head>
 <body>
 
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <span class="modal-title">⚙ Settings</span>
+      <button type="button" class="modal-close" onclick="closeModal('settingsModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="m-section-label">Google Apps Script Connection</div>
+      <div class="m-field">
+        <label>Apps Script Web App URL <span class="req">*</span></label>
+        <input type="url" id="st-scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <div class="m-field">
+        <label>Self Check-In Kiosk URL (for QR code)</label>
+        <input type="url" id="st-checkinUrl" placeholder="https://your-site.netlify.app/checkin-v1.html">
+      </div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-top:8px;line-height:1.6">
+        These URLs are saved in this browser only. Each device must be configured once.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn secondary" onclick="closeModal('settingsModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" onclick="saveSettings()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -816,6 +844,9 @@ tbody td.muted { color: var(--muted); }
       <div class="nav-item" onclick="loadRecords()">
         <span class="icon">↺</span> Refresh
       </div>
+      <div class="nav-item" onclick="openSettingsModal()">
+        <span class="icon">⚙</span> Settings
+      </div>
     </div>
 
     <div class="sidebar-footer">
@@ -829,6 +860,11 @@ tbody td.muted { color: var(--muted); }
 
   <!-- Main -->
   <div class="main">
+    <!-- Config Banner -->
+    <div id="configBanner" style="display:none;background:rgba(240,180,41,0.12);border-bottom:2px solid var(--accent);padding:10px 20px;align-items:center;gap:12px;font-size:0.85rem;color:var(--accent);">
+      ⚙ Apps Script URL not configured — records will not save.
+      <button type="button" onclick="openSettingsModal()" style="padding:5px 14px;background:var(--accent);color:#000;border:none;border-radius:6px;font-weight:700;font-size:0.8rem;cursor:pointer;margin-left:auto;">Open Settings</button>
+    </div>
     <!-- Topbar -->
     <div class="topbar">
       <div class="search-wrap">
@@ -918,8 +954,9 @@ tbody td.muted { color: var(--muted); }
 
 <script>
 // ========== CONFIG ==========
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHY5OmaTspxsqiGK_1N-Mzv0gv6I1QsJSFD9PUIIITstYOBPG2RySziZZ2oprFspjyAw/exec"; // Replace with your deployed Apps Script URL
-const CHECKIN_URL = "YOUR_CHECKIN_URL_HERE"; // URL to checkin-v1.html for QR code
+// URLs are stored in localStorage — set them via the Settings panel in the sidebar
+let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || '';
+let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || '';
 
 // ========== STATE ==========
 let allRecords = [];
@@ -946,29 +983,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ========== DATA ==========
 async function loadRecords() {
+  if (!APPS_SCRIPT_URL) {
+    showConfigBanner();
+    return;
+  }
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
     allRecords = data.records || [];
+    hideConfigBanner();
     filterRecords();
     updateStats();
   } catch (err) {
-    // Demo mode - use sample data if no Apps Script connected
-    if (allRecords.length === 0) loadDemoData();
-    else filterRecords();
+    // Never wipe existing records on a failed refresh — just show a warning
+    showToast('⚠ Could not reach Google Sheet. Showing last known data.', 'error');
+    filterRecords();
+    updateStats();
   }
 }
 
-function loadDemoData() {
-  allRecords = [
-    { "Row ID":"CR-001","Date":"03/27/2026","Driver Name":"Marcus Johnson","Driver Phone":"(443) 555-0101","Carrier":"Premier Auto Transport","Carrier Phone":"(410) 555-2200","Lane":"A2","Time In":"08:15 AM","Time Out":"","Drop Off":3,"Pickup":2,"Status":"In Progress","Vehicle Types":"Wholesale","Comments":"","Queue Position":1,"Est. Wait (min)":0,"Signed In By":"Self","Signed Out By":"","_rowIndex":2 },
-    { "Row ID":"CR-002","Date":"03/27/2026","Driver Name":"Darren Fields","Driver Phone":"(301) 555-0222","Carrier":"Atlantic Haulers LLC","Carrier Phone":"(301) 555-8800","Lane":"","Time In":"08:47 AM","Time Out":"","Drop Off":1,"Pickup":4,"Status":"Waiting","Vehicle Types":"RAW","Comments":"Has fragile vehicle","Queue Position":2,"Est. Wait (min)":20,"Signed In By":"J.Smith","Signed Out By":"","_rowIndex":3 },
-    { "Row ID":"CR-003","Date":"03/27/2026","Driver Name":"Tanya Williams","Driver Phone":"(240) 555-0333","Carrier":"Metro Movers","Carrier Phone":"","Lane":"","Time In":"09:12 AM","Time Out":"","Drop Off":0,"Pickup":2,"Status":"Waiting","Vehicle Types":"Repo","Comments":"","Queue Position":3,"Est. Wait (min)":40,"Signed In By":"Self","Signed Out By":"","_rowIndex":4 },
-    { "Row ID":"CR-004","Date":"03/27/2026","Driver Name":"Kevin Ortega","Driver Phone":"(410) 555-0444","Carrier":"Southbound Transport","Carrier Phone":"(410) 555-9900","Lane":"B1","Time In":"07:30 AM","Time Out":"08:45 AM","Drop Off":2,"Pickup":1,"Status":"Completed","Vehicle Types":"Wholesale","Comments":"","Queue Position":1,"Est. Wait (min)":0,"Signed In By":"R.Davis","Signed Out By":"R.Davis","_rowIndex":5 },
-  ];
-  filterRecords();
-  updateStats();
+function showConfigBanner() {
+  document.getElementById('configBanner').style.display = 'flex';
+  document.getElementById('tableBody').innerHTML = '<tr class="loading-row"><td colspan="11">⚙ Configure the Apps Script URL in Settings to load records.</td></tr>';
+}
+function hideConfigBanner() {
+  document.getElementById('configBanner').style.display = 'none';
 }
 
 // ========== FILTERING & SORTING ==========
@@ -1184,6 +1224,11 @@ async function submitCheckin() {
     return;
   }
 
+  if (!APPS_SCRIPT_URL) {
+    showToast('⚙ Apps Script URL not configured. Open Settings in the sidebar.', 'error');
+    return;
+  }
+
   const payload = {
     action: "checkIn",
     "Driver Name": name,
@@ -1206,40 +1251,11 @@ async function submitCheckin() {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
     closeModal('checkinModal');
     showToast(`✓ ${name} checked in — Queue #${data.queuePosition}`, 'success');
     loadRecords();
   } catch (err) {
-    // Demo mode fallback
-    const queuePos = allRecords.filter(r => r['Status'] === 'Waiting' || r['Status'] === 'In Progress').length + 1;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
-    const newRecord = {
-      "Row ID": "CR-" + Date.now(),
-      "Date": now.toLocaleDateString('en-US'),
-      "Driver Name": name,
-      "Driver Phone": document.getElementById('ci-driverPhone').value.trim(),
-      "Carrier": carrier,
-      "Carrier Phone": document.getElementById('ci-carrierPhone').value.trim(),
-      "Lane": document.getElementById('ci-lane').value.trim(),
-      "Time In": timeStr,
-      "Time Out": "",
-      "Drop Off": Number(document.getElementById('ci-dropOff').value),
-      "Pickup": Number(document.getElementById('ci-pickup').value),
-      "Status": "Waiting",
-      "Vehicle Types": document.getElementById('ci-vehicleTypes').value,
-      "Comments": document.getElementById('ci-comments').value.trim(),
-      "Queue Position": queuePos,
-      "Est. Wait (min)": (queuePos - 1) * 20,
-      "Signed In By": signedBy,
-      "Signed Out By": ""
-    };
-    allRecords.push(newRecord);
-    closeModal('checkinModal');
-    showToast(`✓ ${name} checked in — Queue #${queuePos} (demo mode)`, 'success');
-    filterRecords();
-    updateStats();
+    showToast(`✗ Save failed: ${err.message}`, 'error');
   }
 }
 
@@ -1249,13 +1265,11 @@ async function submitCheckout() {
     showToast('Please enter who is signing the driver out.', 'error');
     return;
   }
-
   const payload = {
     action: "checkOut",
     "rowId": selectedRowId,
     "Signed Out By": signedBy
   };
-
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -1264,23 +1278,11 @@ async function submitCheckout() {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
     closeModal('checkoutModal');
     showToast('✓ Driver checked out successfully', 'success');
     loadRecords();
   } catch (err) {
-    // Demo fallback
-    const idx = allRecords.findIndex(r => r['Row ID'] === selectedRowId);
-    if (idx !== -1) {
-      const now = new Date();
-      allRecords[idx]['Time Out'] = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
-      allRecords[idx]['Status'] = 'Completed';
-      allRecords[idx]['Signed Out By'] = signedBy;
-    }
-    closeModal('checkoutModal');
-    showToast('✓ Driver checked out (demo mode)', 'success');
-    filterRecords();
-    updateStats();
+    showToast(`✗ Check out failed: ${err.message}`, 'error');
   }
 }
 
@@ -1295,7 +1297,6 @@ async function submitEdit() {
     "Vehicle Types": document.getElementById('ed-vehicleTypes').value,
     "Comments": document.getElementById('ed-comments').value.trim()
   };
-
   try {
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -1308,20 +1309,7 @@ async function submitEdit() {
     showToast('✓ Record updated', 'success');
     loadRecords();
   } catch (err) {
-    // Demo fallback
-    const idx = allRecords.findIndex(r => r['Row ID'] === selectedRowId);
-    if (idx !== -1) {
-      allRecords[idx]['Lane'] = payload['Lane'];
-      allRecords[idx]['Status'] = payload['Status'];
-      allRecords[idx]['Drop Off'] = Number(payload['Drop Off']);
-      allRecords[idx]['Pickup'] = Number(payload['Pickup']);
-      allRecords[idx]['Vehicle Types'] = payload['Vehicle Types'];
-      allRecords[idx]['Comments'] = payload['Comments'];
-    }
-    closeModal('editModal');
-    showToast('✓ Record updated (demo mode)', 'success');
-    filterRecords();
-    updateStats();
+    showToast(`✗ Update failed: ${err.message}`, 'error');
   }
 }
 
@@ -1335,14 +1323,34 @@ async function setStatus(rowId, status) {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
+    showToast(`✓ Status updated to ${status}`, 'success');
     loadRecords();
-  } catch {
-    const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
-    if (idx !== -1) allRecords[idx]['Status'] = status;
-    filterRecords();
-    updateStats();
+  } catch (err) {
+    showToast(`✗ Status update failed: ${err.message}`, 'error');
   }
-  showToast(`Status updated to ${status}`, 'success');
+}
+
+// ========== SETTINGS ==========
+function openSettingsModal() {
+  document.getElementById('st-scriptUrl').value = APPS_SCRIPT_URL;
+  document.getElementById('st-checkinUrl').value = CHECKIN_URL;
+  openModal('settingsModal');
+}
+
+function saveSettings() {
+  const scriptUrl = document.getElementById('st-scriptUrl').value.trim();
+  const checkinUrl = document.getElementById('st-checkinUrl').value.trim();
+  if (!scriptUrl) {
+    showToast('Please enter the Apps Script URL.', 'error');
+    return;
+  }
+  APPS_SCRIPT_URL = scriptUrl;
+  CHECKIN_URL = checkinUrl;
+  localStorage.setItem('carsrus_script_url', scriptUrl);
+  localStorage.setItem('carsrus_checkin_url', checkinUrl);
+  closeModal('settingsModal');
+  showToast('✓ Settings saved. Connecting to Google Sheet…', 'success');
+  loadRecords();
 }
 
 // ========== EMPLOYEE ==========

@@ -97,11 +97,14 @@ The `TransporterLog` sheet is auto-created with these columns:
 
 | Version | File | Notes |
 |---------|------|-------|
+| v5 | index-v5.html | Fix: Settings screen to configure URLs in-browser; removed demo fallback that caused data loss; loadRecords never wipes existing data on failed refresh |
 | v4 | index-v4.html | Fix: action buttons (Edit/Start/Check Out) now have type="button"; auto-refresh paused while modal open; Escape key only closes QR modal not data-entry modals; sortBy uses safe element reference not global event |
 | v3 | index-v3.html | Fix: backdrop click no longer closes data-entry modals; Tab key navigates fields safely |
 | v2 | index-v2.html | Fix: Enter key no longer closes modals early; added type="button" to all modal buttons |
 | v1 | index-v1.html | Initial release |
 | v1 | checkin-v1.html | Initial release |
+| v3 | appscript-v3.gs | Fix: uses openByUrl — works as standalone script, no longer requires script to be bound to sheet |
+| v2 | appscript-v2.gs | Intermediate copy (superseded by v3) |
 | v1 | appscript-v1.gs | Initial release |
 
 ---
