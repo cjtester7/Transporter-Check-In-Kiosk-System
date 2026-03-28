@@ -1,10 +1,9 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v3.gs
+// Version: appscript-v4.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
 // CONFIGURATION — paste your Google Sheet URL here
-// (copy the full URL from your browser address bar)
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";
 // ============================================================
 
@@ -17,21 +16,21 @@ const HEADERS = [
 ];
 
 function doGet(e) {
-  return handleRequest(e);
-}
-
-function doPost(e) {
-  return handleRequest(e);
-}
-
-function handleRequest(e) {
   const output = ContentService.createTextOutput();
   output.setMimeType(ContentService.MimeType.JSON);
 
   try {
     const params = e.parameter || {};
-    const body = e.postData ? JSON.parse(e.postData.contents || "{}") : {};
-    const action = params.action || body.action;
+
+    // Support both ?action=getAll and ?data={"action":"checkIn",...}
+    let action, body;
+    if (params.data) {
+      body = JSON.parse(params.data);
+      action = body.action;
+    } else {
+      action = params.action;
+      body = params;
+    }
 
     let result;
     switch (action) {
@@ -48,6 +47,30 @@ function handleRequest(e) {
     output.setContent(JSON.stringify({ error: err.message }));
   }
 
+  return output;
+}
+
+// Keep doPost for compatibility
+function doPost(e) {
+  const output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
+  try {
+    const body = e.postData ? JSON.parse(e.postData.contents || "{}") : {};
+    const action = body.action;
+    let result;
+    switch (action) {
+      case "getAll":       result = getAllRecords(); break;
+      case "checkIn":      result = checkIn(body); break;
+      case "checkOut":     result = checkOut(body); break;
+      case "updateStatus": result = updateStatus(body); break;
+      case "updateRecord": result = updateRecord(body); break;
+      case "getQueue":     result = getQueueInfo(); break;
+      default:             result = { error: "Unknown action: " + action };
+    }
+    output.setContent(JSON.stringify(result));
+  } catch (err) {
+    output.setContent(JSON.stringify({ error: err.message }));
+  }
   return output;
 }
 
@@ -70,7 +93,6 @@ function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { records: [] };
-
   const headers = data[0];
   const records = data.slice(1).map((row, i) => {
     const obj = {};
@@ -80,7 +102,6 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-
   return { records };
 }
 
@@ -89,12 +110,10 @@ function checkIn(data) {
   const now = new Date();
   const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "MM/dd/yyyy");
   const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "hh:mm a");
-
   const allData = sheet.getDataRange().getValues();
   const activeRows = allData.slice(1).filter(r => r[10] === "Waiting" || r[10] === "In Progress");
   const queuePos = activeRows.length + 1;
   const estWait = (queuePos - 1) * 20;
-
   const rowId = "CR-" + now.getTime() + "-" + Math.random().toString(36).slice(2, 6).toUpperCase();
   const row = [
     dateStr,
@@ -116,7 +135,6 @@ function checkIn(data) {
     "",
     rowId
   ];
-
   sheet.appendRow(row);
   return { success: true, rowId, queuePosition: queuePos, estWait, timeIn: timeStr };
 }
@@ -125,7 +143,6 @@ function checkOut(data) {
   const sheet = getSheet();
   const allData = sheet.getDataRange().getValues();
   const rowId = data["rowId"] || data["Row ID"];
-
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][17] == rowId) {
       const now = new Date();
@@ -144,7 +161,6 @@ function updateStatus(data) {
   const sheet = getSheet();
   const allData = sheet.getDataRange().getValues();
   const rowId = data["rowId"];
-
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][17] == rowId) {
       sheet.getRange(i + 1, 11).setValue(data["status"]);
@@ -159,7 +175,6 @@ function updateRecord(data) {
   const allData = sheet.getDataRange().getValues();
   const rowId = data["rowId"];
   const headers = allData[0];
-
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][17] == rowId) {
       const rowNum = i + 1;

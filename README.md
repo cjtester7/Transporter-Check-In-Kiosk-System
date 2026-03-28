@@ -97,6 +97,7 @@ The `TransporterLog` sheet is auto-created with these columns:
 
 | Version | File | Notes |
 |---------|------|-------|
+| v8 | index-v8.html | Fix: replaced POST with GET+params to resolve CORS "Failed to fetch" error |
 | v7 | index-v7.html | Add: login screen with admin/user1 accounts; Settings restricted to admin only; role badge in sidebar; Sign Out button |
 | v6 | index-v6.html | Fix: Apps Script URL hardcoded in file — works on all devices without configuration; Settings panel kept as admin override only |
 | v5 | index-v5.html | Fix: Settings screen to configure URLs in-browser; removed demo fallback that caused data loss; loadRecords never wipes existing data on failed refresh |
@@ -106,6 +107,7 @@ The `TransporterLog` sheet is auto-created with these columns:
 | v1 | index-v1.html | Initial release |
 | v2 | checkin-v2.html | Fix: Apps Script URL hardcoded in file — no per-device configuration needed |
 | v1 | checkin-v1.html | Initial release |
+| v4 | appscript-v4.gs | Fix: doGet now reads data param for all actions — supports GET requests from browser to fix CORS |
 | v3 | appscript-v3.gs | Fix: uses openByUrl — works as standalone script, no longer requires script to be bound to sheet |
 | v2 | appscript-v2.gs | Intermediate copy (superseded by v3) |
 | v1 | appscript-v1.gs | Initial release |
