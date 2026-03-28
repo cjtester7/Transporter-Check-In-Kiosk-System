@@ -1244,6 +1244,34 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ========== DATA ==========
+
+// Formats a raw value from Google Sheets into a readable date or time string.
+// Handles both ISO strings (e.g. "1899-12-30T18:52:00.000Z") and already-formatted strings.
+function formatSheetDate(val) {
+  if (!val) return '';
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val; // Not a date — return as-is
+  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
+function formatSheetTime(val) {
+  if (!val) return '';
+  // Already formatted (e.g. "09:52 AM") — return as-is
+  if (typeof val === 'string' && /^\d{1,2}:\d{2}\s*(AM|PM)$/i.test(val)) return val;
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return val;
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatRecords(records) {
+  return records.map(r => ({
+    ...r,
+    'Date':     formatSheetDate(r['Date']),
+    'Time In':  formatSheetTime(r['Time In']),
+    'Time Out': formatSheetTime(r['Time Out']),
+  }));
+}
+
 async function loadRecords() {
   if (!APPS_SCRIPT_URL) {
     showConfigBanner();
@@ -1253,7 +1281,7 @@ async function loadRecords() {
     const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    allRecords = data.records || [];
+    allRecords = formatRecords(data.records || []);
     hideConfigBanner();
     filterRecords();
     updateStats();
