@@ -887,16 +887,16 @@ tbody td.muted { color: var(--muted); }
           <table>
             <thead>
               <tr>
-                <th onclick="sortBy('Queue Position')">Queue <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Driver Name')">Driver <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Carrier')">Carrier <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Lane')">Lane <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Time In')">Time In <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Time Out')">Time Out <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Drop Off')">Drop <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Pickup')">Pick <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Status')">Status <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Vehicle Types')">Type <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Queue Position', this)">Queue <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Driver Name', this)">Driver <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Carrier', this)">Carrier <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Lane', this)">Lane <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Time In', this)">Time In <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Time Out', this)">Time Out <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Drop Off', this)">Drop <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Pickup', this)">Pick <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Status', this)">Status <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Vehicle Types', this)">Type <span class="sort-arrow">↕</span></th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -936,7 +936,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sb-empName').textContent = employeeName;
   document.getElementById('ci-signedInBy').value = employeeName;
   loadRecords();
-  setInterval(loadRecords, 60000); // Auto-refresh every 60s
+  setInterval(() => {
+    // Don't refresh while employee is actively filling in a modal
+    const modalOpen = ['checkinModal','checkoutModal','editModal']
+      .some(id => document.getElementById(id).classList.contains('open'));
+    if (!modalOpen) loadRecords();
+  }, 60000);
 });
 
 // ========== DATA ==========
@@ -992,12 +997,11 @@ function filterRecords() {
   renderView();
 }
 
-function sortBy(field) {
+function sortBy(field, el) {
   if (sortField === field) sortAsc = !sortAsc;
   else { sortField = field; sortAsc = true; }
-  // Update header styles
   document.querySelectorAll('thead th').forEach(th => th.classList.remove('sorted'));
-  event.target.closest('th').classList.add('sorted');
+  el.closest('th').classList.add('sorted');
   filterRecords();
 }
 
@@ -1088,12 +1092,12 @@ function renderCards() {
 
 function buildActions(r) {
   const id = r['Row ID'];
-  let html = `<button class="action-btn" onclick="openEditModal('${id}')">Edit</button>`;
+  let html = `<button type="button" class="action-btn" onclick="openEditModal('${id}')">Edit</button>`;
   if (r['Status'] === 'Waiting') {
-    html += `<button class="action-btn start" onclick="setStatus('${id}','In Progress')">Start</button>`;
+    html += `<button type="button" class="action-btn start" onclick="setStatus('${id}','In Progress')">Start</button>`;
   }
   if (r['Status'] !== 'Completed') {
-    html += `<button class="action-btn checkout" onclick="openCheckoutModal('${id}')">Check Out</button>`;
+    html += `<button type="button" class="action-btn checkout" onclick="openCheckoutModal('${id}')">Check Out</button>`;
   }
   return html;
 }
@@ -1380,27 +1384,25 @@ function showToast(msg, type = 'success') {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  // Escape closes modals
+  // Escape only closes the QR modal - never data-entry modals (prevents accidental data loss)
   if (e.key === 'Escape') {
-    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+    const qr = document.getElementById('qrModal');
+    if (qr.classList.contains('open')) closeModal('qrModal');
   }
-  // Inside data-entry modals: block Enter completely on inputs/selects (move to next field)
-  // and block Enter on Cancel/Close buttons to prevent accidental dismissal while tabbing
+  // Inside data-entry modals: block Enter on inputs/selects and advance focus to next field
+  // Block Enter on non-primary buttons to prevent accidental Cancel/Close activation
   if (e.key === 'Enter' && e.target.closest('#checkinModal, #checkoutModal, #editModal')) {
     const tag = e.target.tagName.toLowerCase();
     if (tag === 'input' || tag === 'select') {
       e.preventDefault();
       e.stopPropagation();
-      // Advance focus to next focusable element in the modal
       const modal = e.target.closest('.modal');
       const focusable = Array.from(modal.querySelectorAll('input, select, textarea, button'));
       const idx = focusable.indexOf(e.target);
       if (idx !== -1 && idx < focusable.length - 1) focusable[idx + 1].focus();
     }
     if (tag === 'button') {
-      // Only allow Enter to activate the primary submit button, not cancel/close
-      const isSubmit = e.target.classList.contains('primary');
-      if (!isSubmit) {
+      if (!e.target.classList.contains('primary')) {
         e.preventDefault();
         e.stopPropagation();
       }
