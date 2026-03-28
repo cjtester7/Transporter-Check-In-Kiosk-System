@@ -5,7 +5,7 @@
 // ============================================================
 // CONFIGURATION — paste your Google Sheet URL here
 // (copy the full URL from your browser address bar)
-const SHEET_URL = "1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";
 // ============================================================
 
 const SHEET_NAME = "TransporterLog";
