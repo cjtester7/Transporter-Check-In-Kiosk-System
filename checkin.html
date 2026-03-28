@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CarsRUs — Driver Check-In</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a24;
+    --surface2: #1e2433;
+    --border: #2a3045;
+    --accent: #f0b429;
+    --accent2: #e8431a;
+    --text: #eef0f6;
+    --muted: #7a8299;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; }
+
+  .kiosk-wrap {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 60px;
+  }
+
+  /* Header */
+  .kiosk-header {
+    width: 100%;
+    background: linear-gradient(135deg, #0d0f14 0%, #1a1f30 100%);
+    border-bottom: 3px solid var(--accent);
+    padding: 20px 24px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .kiosk-header .brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .kiosk-header .subtitle {
+    font-size: 0.8rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* Steps indicator */
+  .steps-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 28px auto 0;
+    max-width: 380px;
+    width: calc(100% - 48px);
+  }
+  .step-dot {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--muted);
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .step-dot.active { background: var(--accent); border-color: var(--accent); color: #000; }
+  .step-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+  .step-line { flex: 1; height: 2px; background: var(--border); }
+  .step-line.done { background: var(--green); }
+
+  /* Form container */
+  .form-container {
+    width: 100%;
+    max-width: 480px;
+    padding: 0 20px;
+    margin-top: 28px;
+  }
+
+  /* Step screens */
+  .step-screen { display: none; }
+  .step-screen.active { display: block; animation: fadeUp 0.3s ease; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+
+  /* Fields */
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+  .field label span.req { color: var(--accent); margin-left: 2px; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent);
+  }
+  .field textarea { resize: none; min-height: 80px; }
+  .field select option { background: #1e2433; }
+
+  /* Row fields */
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Counter fields */
+  .counter-wrap {
+    display: flex; align-items: center; gap: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .counter-btn {
+    width: 52px; height: 52px;
+    background: var(--surface2);
+    border: none;
+    color: var(--text);
+    font-size: 1.4rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .counter-btn:active { background: var(--accent); color: #000; }
+  .counter-val {
+    flex: 1;
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* Checkbox pills */
+  .vehicle-types { display: flex; flex-wrap: wrap; gap: 8px; }
+  .vtype-pill input { position: absolute; opacity: 0; pointer-events: none; }
+  .vtype-pill label {
+    display: block;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .vtype-pill input:checked + label {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    width: 100%;
+    padding: 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+  /* Confirmation card */
+  .confirm-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .confirm-card .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+  }
+  .confirm-card .row:last-child { border-bottom: none; }
+  .confirm-card .row .lbl {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+  .confirm-card .row .val {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+  }
+
+  /* Success screen */
+  .success-screen {
+    text-align: center;
+    padding: 20px 0;
+  }
+  .success-badge {
+    width: 88px; height: 88px;
+    background: rgba(34, 197, 94, 0.15);
+    border: 3px solid var(--green);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 2.2rem;
+  }
+  .queue-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 5rem;
+    font-weight: 900;
+    color: var(--accent);
+    line-height: 1;
+    margin: 16px 0 4px;
+  }
+  .queue-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+  .wait-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 100px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .wait-badge .dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .info-box {
+    background: var(--surface);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(232, 67, 26, 0.1);
+    border: 1.5px solid rgba(232, 67, 26, 0.4);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    color: #f87171;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  /* Loading */
+  .spinner {
+    width: 24px; height: 24px;
+    border: 3px solid rgba(240,180,41,0.3);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(13,15,20,0.8);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .loading-overlay.show { display: flex; }
+  .loading-overlay p { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner" style="display:block"></div>
+  <p>Checking you in…</p>
+</div>
+
+<div class="kiosk-wrap">
+  <div class="kiosk-header">
+    <div class="brand">CARS<span style="color:#fff">RUS</span></div>
+    <div class="subtitle">Transporter Self Check-In</div>
+  </div>
+
+  <!-- Steps indicator -->
+  <div class="steps-bar" id="stepsBar">
+    <div class="step-dot active" id="step-dot-1">1</div>
+    <div class="step-line" id="step-line-1"></div>
+    <div class="step-dot" id="step-dot-2">2</div>
+    <div class="step-line" id="step-line-2"></div>
+    <div class="step-dot" id="step-dot-3">3</div>
+    <div class="step-line" id="step-line-3"></div>
+    <div class="step-dot" id="step-dot-4">4</div>
+  </div>
+
+  <div class="form-container">
+
+    <!-- STEP 1: Driver Info -->
+    <div class="step-screen active" id="screen-1">
+      <p class="step-title">Driver Info</p>
+      <p class="step-desc">Enter your personal and carrier information to get started.</p>
+
+      <div class="error-msg" id="err1"></div>
+
+      <div class="field">
+        <label>Driver Name <span class="req">*</span></label>
+        <input type="text" id="driverName" placeholder="Your full name" autocomplete="name">
+      </div>
+      <div class="field">
+        <label>Driver Phone <span class="req">*</span></label>
+        <input type="tel" id="driverPhone" placeholder="(555) 000-0000" autocomplete="tel">
+      </div>
+      <div class="divider"></div>
+      <div class="field">
+        <label>Carrier / Company <span class="req">*</span></label>
+        <input type="text" id="carrier" placeholder="Transport company name">
+      </div>
+      <div class="field">
+        <label>Carrier Phone</label>
+        <input type="tel" id="carrierPhone" placeholder="(555) 000-0000">
+      </div>
+      <button class="btn-primary" onclick="goStep2()">Continue →</button>
+    </div>
+
+    <!-- STEP 2: Load Details -->
+    <div class="step-screen" id="screen-2">
+      <p class="step-title">Load Details</p>
+      <p class="step-desc">Tell us about the vehicles you're dropping off or picking up today.</p>
+
+      <div class="field">
+        <label>Drop Off (vehicles)</label>
+        <div class="counter-wrap">
+          <button class="counter-btn" onclick="adjustCount('dropOff', -1)">−</button>
+          <span class="counter-val" id="dropOff-val">0</span>
+          <button class="counter-btn" onclick="adjustCount('dropOff', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Pickup (vehicles)</label>
+        <div class="counter-wrap">
+          <button class="counter-btn" onclick="adjustCount('pickup', -1)">−</button>
+          <span class="counter-val" id="pickup-val">0</span>
+          <button class="counter-btn" onclick="adjustCount('pickup', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <label>Type of Vehicles <span class="req">*</span></label>
+        <div class="vehicle-types">
+          <div class="vtype-pill"><input type="checkbox" id="vt1" value="Wholesale"><label for="vt1">Wholesale</label></div>
+          <div class="vtype-pill"><input type="checkbox" id="vt2" value="RAW"><label for="vt2">RAW</label></div>
+          <div class="vtype-pill"><input type="checkbox" id="vt3" value="Repo"><label for="vt3">Repo</label></div>
+          <div class="vtype-pill"><input type="checkbox" id="vt4" value="No Runner"><label for="vt4">No Runner</label></div>
+          <div class="vtype-pill"><input type="checkbox" id="vt5" value="Other"><label for="vt5">Other</label></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:20px">
+        <label>Comments / Notes</label>
+        <textarea id="comments" placeholder="Any special instructions or notes…"></textarea>
+      </div>
+
+      <div class="error-msg" id="err2"></div>
+      <button class="btn-primary" onclick="goStep3()">Review →</button>
+      <button class="btn-secondary" onclick="goStep(1)">← Back</button>
+    </div>
+
+    <!-- STEP 3: Review -->
+    <div class="step-screen" id="screen-3">
+      <p class="step-title">Review & Confirm</p>
+      <p class="step-desc">Please verify your information before submitting.</p>
+
+      <div class="confirm-card" id="reviewCard">
+        <!-- filled dynamically -->
+      </div>
+
+      <button class="btn-primary" onclick="submitCheckIn()">✓ Check In Now</button>
+      <button class="btn-secondary" onclick="goStep(2)">← Edit Details</button>
+    </div>
+
+    <!-- STEP 4: Success -->
+    <div class="step-screen" id="screen-4">
+      <div class="success-screen">
+        <div class="success-badge">✓</div>
+        <p class="step-title">You're Checked In!</p>
+        <p class="step-desc">Please wait for staff to call your queue number.</p>
+
+        <div class="queue-number" id="queueNum">—</div>
+        <div class="queue-label">Your Queue Position</div>
+
+        <div class="wait-badge">
+          <span class="dot"></span>
+          <span id="waitMsg">Estimated wait: — min</span>
+        </div>
+
+        <div class="info-box">
+          📋 Please stay near your vehicle and listen for staff announcements. Your <strong>Time In</strong> has been recorded automatically.
+        </div>
+
+        <button class="btn-primary" onclick="resetForm()">Check In Another Driver</button>
+      </div>
+    </div>
+
+  </div><!-- /form-container -->
+</div><!-- /kiosk-wrap -->
+
+<script>
+  // ========== CONFIG ==========
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHY5OmaTspxsqiGK_1N-Mzv0gv6I1QsJSFD9PUIIITstYOBPG2RySziZZ2oprFspjyAw/exec"; // Replace with deployed URL
+
+  // ========== STATE ==========
+  let counts = { dropOff: 0, pickup: 0 };
+  let currentStep = 1;
+
+  // ========== NAVIGATION ==========
+  function goStep(n) {
+    document.getElementById(`screen-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-dot-${currentStep}`).classList.remove('active');
+    document.getElementById(`step-dot-${currentStep}`).classList.add('done');
+
+    if (n < currentStep) {
+      // Going back - un-done current
+      document.getElementById(`step-dot-${currentStep}`).classList.remove('done');
+    }
+
+    currentStep = n;
+    document.getElementById(`screen-${n}`).classList.add('active');
+    document.getElementById(`step-dot-${n}`).classList.remove('done');
+    document.getElementById(`step-dot-${n}`).classList.add('active');
+
+    // Update lines
+    for (let i = 1; i <= 3; i++) {
+      const line = document.getElementById(`step-line-${i}`);
+      if (i < n) line.classList.add('done');
+      else line.classList.remove('done');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goStep2() {
+    const name = document.getElementById('driverName').value.trim();
+    const phone = document.getElementById('driverPhone').value.trim();
+    const carrier = document.getElementById('carrier').value.trim();
+    const err = document.getElementById('err1');
+
+    if (!name || !phone || !carrier) {
+      err.textContent = 'Please fill in all required fields.';
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    goStep(2);
+  }
+
+  function goStep3() {
+    const types = getSelectedTypes();
+    const err = document.getElementById('err2');
+    if (counts.dropOff === 0 && counts.pickup === 0) {
+      err.textContent = 'Please enter at least one Drop Off or Pickup vehicle.';
+      err.classList.add('show');
+      return;
+    }
+    if (types.length === 0) {
+      err.textContent = 'Please select at least one vehicle type.';
+      err.classList.add('show');
+      return;
+    }
+    err.classList.remove('show');
+    buildReview();
+    goStep(3);
+  }
+
+  // ========== HELPERS ==========
+  function adjustCount(field, delta) {
+    counts[field] = Math.max(0, counts[field] + delta);
+    document.getElementById(`${field}-val`).textContent = counts[field];
+  }
+
+  function getSelectedTypes() {
+    return ['vt1','vt2','vt3','vt4','vt5']
+      .filter(id => document.getElementById(id).checked)
+      .map(id => document.getElementById(id).value);
+  }
+
+  function formatPhone(val) {
+    const d = val.replace(/\D/g,'');
+    if (d.length >= 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6,10)}`;
+    return val;
+  }
+
+  function buildReview() {
+    const rows = [
+      { lbl: 'Driver', val: document.getElementById('driverName').value },
+      { lbl: 'Driver Phone', val: formatPhone(document.getElementById('driverPhone').value) },
+      { lbl: 'Carrier', val: document.getElementById('carrier').value },
+      { lbl: 'Carrier Phone', val: document.getElementById('carrierPhone').value || '—' },
+      { lbl: 'Drop Off', val: counts.dropOff },
+      { lbl: 'Pickup', val: counts.pickup },
+      { lbl: 'Vehicle Types', val: getSelectedTypes().join(', ') },
+      { lbl: 'Comments', val: document.getElementById('comments').value || '—' },
+    ];
+    document.getElementById('reviewCard').innerHTML = rows.map(r =>
+      `<div class="row"><span class="lbl">${r.lbl}</span><span class="val">${r.val}</span></div>`
+    ).join('');
+  }
+
+  // ========== SUBMIT ==========
+  async function submitCheckIn() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('show');
+
+    const payload = {
+      action: "checkIn",
+      "Driver Name": document.getElementById('driverName').value.trim(),
+      "Driver Phone": document.getElementById('driverPhone').value.trim(),
+      "Carrier": document.getElementById('carrier').value.trim(),
+      "Carrier Phone": document.getElementById('carrierPhone').value.trim(),
+      "Drop Off": counts.dropOff,
+      "Pickup": counts.pickup,
+      "Vehicle Types": getSelectedTypes().join(', '),
+      "Comments": document.getElementById('comments').value.trim(),
+      "Signed In By": "Self"
+    };
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // With no-cors we can't read response — assume success
+      // In real deployment, use cors-enabled Apps Script
+      overlay.classList.remove('show');
+
+      // Show success
+      document.getElementById('queueNum').textContent = '?';
+      document.getElementById('waitMsg').textContent = 'Please check with staff for your queue number';
+      goStep(4);
+
+    } catch (err) {
+      overlay.classList.remove('show');
+      alert("Check-in failed. Please see a staff member for assistance.\n\nError: " + err.message);
+    }
+  }
+
+  // ========== RESET ==========
+  function resetForm() {
+    document.getElementById('driverName').value = '';
+    document.getElementById('driverPhone').value = '';
+    document.getElementById('carrier').value = '';
+    document.getElementById('carrierPhone').value = '';
+    document.getElementById('comments').value = '';
+    counts = { dropOff: 0, pickup: 0 };
+    document.getElementById('dropOff-val').textContent = '0';
+    document.getElementById('pickup-val').textContent = '0';
+    ['vt1','vt2','vt3','vt4','vt5'].forEach(id => document.getElementById(id).checked = false);
+
+    // Reset step indicators
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById(`step-dot-${i}`);
+      dot.classList.remove('active', 'done');
+    }
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById(`step-line-${i}`).classList.remove('done');
+    }
+    document.getElementById(`screen-${currentStep}`).classList.remove('active');
+    currentStep = 1;
+    document.getElementById('screen-1').classList.add('active');
+    document.getElementById('step-dot-1').classList.add('active');
+    window.scrollTo({ top: 0 });
+  }
+
+  // Phone formatting
+  ['driverPhone','carrierPhone'].forEach(id => {
+    document.getElementById(id).addEventListener('input', function() {
+      const d = this.value.replace(/\D/g,'').slice(0,10);
+      if (d.length > 6) this.value = `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+      else if (d.length > 3) this.value = `(${d.slice(0,3)}) ${d.slice(3)}`;
+      else if (d.length > 0) this.value = `(${d}`;
+      else this.value = '';
+    });
+  });
+</script>
+</body>
+</html>
