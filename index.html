@@ -74,6 +74,24 @@ html, body {
   text-transform: uppercase;
   margin-top: 3px;
 }
+.brand-clock {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.brand-clock .clock-time {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.brand-clock .clock-date {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
 
 .nav-section { padding: 14px 12px 6px; }
 .nav-label {
@@ -518,7 +536,7 @@ tbody td.muted { color: var(--muted); }
   transition: border-color 0.2s;
 }
 .m-field input:focus, .m-field select:focus, .m-field textarea:focus { border-color: var(--accent); }
-.m-field select option { background: #1e2433; }
+.m-field select option { background: var(--surface2); color: var(--text); }
 .m-field textarea { resize: none; min-height: 70px; }
 .m-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .modal-btn {
@@ -986,6 +1004,10 @@ tbody td.muted { color: var(--muted); }
     <div class="sidebar-brand">
       <div class="brand-name">CARS<span style="color:#fff">RUS</span></div>
       <div class="brand-sub">Gate Operations</div>
+      <div class="brand-clock">
+        <div class="clock-time" id="clockTime">--:-- --</div>
+        <div class="clock-date" id="clockDate">---</div>
+      </div>
     </div>
 
     <div class="nav-section">
@@ -1190,6 +1212,10 @@ function applyUserSession() {
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
+  // Start live clock
+  updateClock();
+  setInterval(updateClock, 1000);
+
   // Restore theme preference
   applyTheme();
 
@@ -1584,6 +1610,16 @@ function saveSettings() {
   closeModal('settingsModal');
   showToast('✓ Settings saved. Connecting to Google Sheet…', 'success');
   loadRecords();
+}
+
+// ========== CLOCK ==========
+function updateClock() {
+  const now = new Date();
+  const timeEl = document.getElementById('clockTime');
+  const dateEl = document.getElementById('clockDate');
+  if (!timeEl) return;
+  timeEl.textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 // ========== THEME ==========
