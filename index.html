@@ -625,7 +625,7 @@ tbody td.muted { color: var(--muted); }
         <input type="url" id="st-checkinUrl" placeholder="https://your-site.netlify.app/checkin-v1.html">
       </div>
       <div style="font-size:0.78rem;color:var(--muted);margin-top:8px;line-height:1.6">
-        These URLs are saved in this browser only. Each device must be configured once.
+        The default URLs are hardcoded in the file and work on all devices automatically. Use this only to override them on this specific browser — for example, during testing or if the URL changes temporarily.
       </div>
     </div>
     <div class="modal-footer">
@@ -954,9 +954,14 @@ tbody td.muted { color: var(--muted); }
 
 <script>
 // ========== CONFIG ==========
-// URLs are stored in localStorage — set them via the Settings panel in the sidebar
-let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || '';
-let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || '';
+// Set your URLs here — these are the defaults used on every device automatically.
+// The Settings panel (sidebar) can override these per-browser if needed.
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxO7-rqLOruCVMI6PLvmdzbQe-N6idW1kZKii3ApAluNmlWVj66jqNuRpwyoJZYvBhTlg/exec";
+const DEFAULT_CHECKIN_URL = "YOUR_CHECKIN_URL_HERE";
+
+// Use hardcoded defaults; localStorage override only if an admin has set one
+let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || DEFAULT_APPS_SCRIPT_URL;
+let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || DEFAULT_CHECKIN_URL;
 
 // ========== STATE ==========
 let allRecords = [];
