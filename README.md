@@ -97,6 +97,8 @@ The `TransporterLog` sheet is auto-created with these columns:
 
 | Version | File | Notes |
 |---------|------|-------|
+| v3 | index-v3.html | Fix: backdrop click no longer closes data-entry modals; Tab key navigates fields safely |
+| v2 | index-v2.html | Fix: Enter key no longer closes modals early; added type="button" to all modal buttons |
 | v1 | index-v1.html | Initial release |
 | v1 | checkin-v1.html | Initial release |
 | v1 | appscript-v1.gs | Initial release |

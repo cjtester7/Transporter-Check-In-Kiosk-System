@@ -1161,14 +1161,11 @@ function openEditModal(rowId) {
   openModal('editModal');
 }
 
-// QR modal
+// Only allow clicking the backdrop to close non-data-entry modals (QR only)
+// Data entry modals (checkin, checkout, edit) must be closed explicitly via buttons
+// to prevent accidental dismissal while tabbing through fields
 document.getElementById('qrModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal('qrModal');
-});
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', function(e) {
-    if (e.target === this) closeModal(this.id);
-  });
 });
 
 // ========== ACTIONS ==========
@@ -1387,14 +1384,26 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
   }
-  // Block Enter from submitting inside any modal - move focus to next field instead
-  if (e.key === 'Enter' && e.target.closest('.modal-overlay')) {
+  // Inside data-entry modals: block Enter completely on inputs/selects (move to next field)
+  // and block Enter on Cancel/Close buttons to prevent accidental dismissal while tabbing
+  if (e.key === 'Enter' && e.target.closest('#checkinModal, #checkoutModal, #editModal')) {
     const tag = e.target.tagName.toLowerCase();
     if (tag === 'input' || tag === 'select') {
       e.preventDefault();
-      const focusable = Array.from(e.target.closest('.modal').querySelectorAll('input, select, textarea, button'));
+      e.stopPropagation();
+      // Advance focus to next focusable element in the modal
+      const modal = e.target.closest('.modal');
+      const focusable = Array.from(modal.querySelectorAll('input, select, textarea, button'));
       const idx = focusable.indexOf(e.target);
       if (idx !== -1 && idx < focusable.length - 1) focusable[idx + 1].focus();
+    }
+    if (tag === 'button') {
+      // Only allow Enter to activate the primary submit button, not cancel/close
+      const isSubmit = e.target.classList.contains('primary');
+      if (!isSubmit) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     }
   }
 });
