@@ -1446,7 +1446,7 @@ function renderTable() {
   tbody.innerHTML = filteredRecords.map(r => {
     const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
                         r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
-    return `<tr class="data-row" data-rowid="${esc(r['Row ID'])}" onclick="toggleExpandRow(this, '${esc(r['Row ID'])}')">
+    return `<tr class="data-row" data-rowid="${esc(r['Row ID'])}" onclick="toggleExpandRow(event, this, '${esc(r['Row ID'])}')">
       <td><span class="queue-num">${r._displayPos || '—'}</span></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Driver Name'])}</div><div class="carrier">${esc(r['Driver Phone'])}</div></div></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Carrier'])}</div><div class="carrier">${esc(r['Carrier Phone'] || '')}</div></div></td>
@@ -1465,9 +1465,9 @@ function renderTable() {
 
 let expandedRowId = null;
 
-function toggleExpandRow(tr, rowId) {
+function toggleExpandRow(e, tr, rowId) {
   // If clicking a button inside the row, don't toggle
-  if (event.target.closest('button')) return;
+  if (e.target.closest('button')) return;
 
   const tbody = document.getElementById('tableBody');
 
