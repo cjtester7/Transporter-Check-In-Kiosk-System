@@ -1333,6 +1333,18 @@ function filterRecords() {
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
   });
 
+  // Assign sequential display position numbers within the filtered view.
+  // Only renumber active records (Waiting/In Progress) — Completed records
+  // show their original queue position for reference.
+  let displayPos = 1;
+  filteredRecords.forEach(r => {
+    if (r['Status'] === 'Waiting' || r['Status'] === 'In Progress') {
+      r._displayPos = displayPos++;
+    } else {
+      r._displayPos = r['Queue Position'];
+    }
+  });
+
   renderView();
 }
 
@@ -1378,7 +1390,7 @@ function renderTable() {
                         r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
     const actions = buildActions(r);
     return `<tr>
-      <td><span class="queue-num">${r['Queue Position'] || '—'}</span></td>
+      <td><span class="queue-num">${r._displayPos || '—'}</span></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Driver Name'])}</div><div class="carrier">${esc(r['Driver Phone'])}</div></div></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Carrier'])}</div><div class="carrier">${esc(r['Carrier Phone'] || '')}</div></div></td>
       <td class="muted">${esc(r['Lane'] || '—')}</td>
@@ -1412,7 +1424,7 @@ function renderCards() {
           <div class="card-carrier">${esc(r['Carrier'])}</div>
         </div>
         <div style="text-align:right">
-          <div class="card-queue">#${r['Queue Position'] || '?'}</div>
+          <div class="card-queue">#${r._displayPos || '?'}</div>
           <span class="status-badge ${statusClass}">${esc(r['Status'])}</span>
         </div>
       </div>
