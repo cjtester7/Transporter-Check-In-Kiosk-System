@@ -1623,6 +1623,7 @@ function openCheckinModal() {
 }
 
 function openCheckoutModal(rowId) {
+  closeCardModal();
   selectedRowId = rowId;
   const r = allRecords.find(x => x['Row ID'] === rowId);
   if (r) {
@@ -1637,6 +1638,7 @@ function openCheckoutModal(rowId) {
 }
 
 function openEditModal(rowId) {
+  closeCardModal();
   selectedRowId = rowId;
   const r = allRecords.find(x => x['Row ID'] === rowId);
   if (r) {
