@@ -1,10 +1,10 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v8.gs
+// Version: appscript-v9.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
 // CONFIGURATION — paste your Google Sheet URL here
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";
+const SHEET_URL = "YOUR_GOOGLE_SHEET_URL_HERE";
 // ============================================================
 
 const SHEET_NAME = "TransporterLog";
@@ -90,7 +90,7 @@ function getSheet() {
 function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { records: [], _v: 8 };
+  if (data.length <= 1) return { records: [], _v: 9 };
   const headers = data[0];
   const tz = Session.getScriptTimeZone();
   const timeColumns = ["Time In", "Time Out"];
@@ -113,7 +113,7 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-  return { records, _v: 8 };
+  return { records, _v: 9 };
 }
 
 function checkIn(data) {
@@ -169,6 +169,7 @@ function checkOut(data) {
       sheet.getRange(rowNum, COL["Time Out"] + 1).setValue(timeStr);
       sheet.getRange(rowNum, COL["Status"] + 1).setValue("Completed");
       sheet.getRange(rowNum, COL["Signed Out By"] + 1).setValue(data["Signed Out By"] || "");
+      resequenceQueue(sheet);
       return { success: true, timeOut: timeStr };
     }
   }
@@ -181,10 +182,28 @@ function updateStatus(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][COL["Row ID"]] == data["rowId"]) {
       sheet.getRange(i + 1, COL["Status"] + 1).setValue(data["status"]);
+      resequenceQueue(sheet);
       return { success: true };
     }
   }
   return { error: "Record not found" };
+}
+
+// Renumbers Queue Position for all active (Waiting/In Progress) records
+// in the order they appear in the sheet (chronological by row).
+// Completed records are set to 0 to indicate they are no longer in queue.
+function resequenceQueue(sheet) {
+  const allData = sheet.getDataRange().getValues();
+  let queueNum = 1;
+  for (let i = 1; i < allData.length; i++) {
+    const status = allData[i][COL["Status"]];
+    const rowNum = i + 1;
+    if (status === "Waiting" || status === "In Progress") {
+      sheet.getRange(rowNum, COL["Queue Position"] + 1).setValue(queueNum);
+      sheet.getRange(rowNum, COL["Est. Wait (min)"] + 1).setValue((queueNum - 1) * 20);
+      queueNum++;
+    }
+  }
 }
 
 function updateRecord(data) {
