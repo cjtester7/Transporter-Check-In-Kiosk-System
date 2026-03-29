@@ -381,6 +381,53 @@ tbody td.muted { color: var(--muted); }
 .status-completed::before { background: var(--green); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+/* Expandable row */
+tbody tr.data-row {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+tbody tr.data-row:hover { background: var(--surface); }
+tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
+tbody tr.data-row.expanded td { border-bottom: none; }
+
+.expand-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--accent) !important;
+}
+.expand-card {
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  background: var(--surface2);
+  animation: slideDown 0.2s ease;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.expand-card .cf-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.expand-card .cf-val {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.expand-card .ec-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
 /* Row action buttons */
 .row-actions { display: flex; gap: 5px; }
 .action-btn {
@@ -1125,7 +1172,7 @@ tbody td.muted { color: var(--muted); }
                 <th onclick="sortBy('Status', this)">Status <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Vehicle Types', this)">Type <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Gate', this)">Gate <span class="sort-arrow">↕</span></th>
-                <th>Actions</th>
+                <th style="width:28px"></th>
               </tr>
             </thead>
             <tbody id="tableBody">
@@ -1389,17 +1436,17 @@ function setView(v) {
 }
 
 function renderTable() {
+  expandedRowId = null;
   const tbody = document.getElementById('tableBody');
   if (!filteredRecords.length) {
-    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--muted)">No records found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:40px;color:var(--muted)">No records found</td></tr>';
     return;
   }
 
   tbody.innerHTML = filteredRecords.map(r => {
     const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
                         r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
-    const actions = buildActions(r);
-    return `<tr>
+    return `<tr class="data-row" data-rowid="${esc(r['Row ID'])}" onclick="toggleExpandRow(this, '${esc(r['Row ID'])}')">
       <td><span class="queue-num">${r._displayPos || '—'}</span></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Driver Name'])}</div><div class="carrier">${esc(r['Driver Phone'])}</div></div></td>
       <td><div class="driver-cell"><div class="name">${esc(r['Carrier'])}</div><div class="carrier">${esc(r['Carrier Phone'] || '')}</div></div></td>
@@ -1411,12 +1458,71 @@ function renderTable() {
       <td><span class="status-badge ${statusClass}">${esc(r['Status'])}</span></td>
       <td class="muted" style="font-size:0.78rem">${esc(r['Vehicle Types'] || '—')}</td>
       <td class="muted">${esc(r['Gate'] || '—')}</td>
-      <td><div class="row-actions">${actions}</div></td>
+      <td><span style="color:var(--muted);font-size:0.75rem">▼</span></td>
     </tr>`;
   }).join('');
 }
 
-function renderCards() {
+let expandedRowId = null;
+
+function toggleExpandRow(tr, rowId) {
+  // If clicking a button inside the row, don't toggle
+  if (event.target.closest('button')) return;
+
+  const tbody = document.getElementById('tableBody');
+
+  // Collapse currently expanded row if any
+  if (expandedRowId) {
+    const prevExpand = tbody.querySelector('.expand-row');
+    const prevTr = tbody.querySelector(`tr[data-rowid="${expandedRowId}"]`);
+    if (prevExpand) prevExpand.remove();
+    if (prevTr) {
+      prevTr.classList.remove('expanded');
+      prevTr.querySelector('td:last-child span').textContent = '▼';
+    }
+    if (expandedRowId === rowId) { expandedRowId = null; return; }
+  }
+
+  // Expand clicked row
+  expandedRowId = rowId;
+  tr.classList.add('expanded');
+  tr.querySelector('td:last-child span').textContent = '▲';
+
+  const r = filteredRecords.find(x => x['Row ID'] === rowId);
+  if (!r) return;
+
+  const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
+                      r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
+  const actions = buildActions(r);
+  const colCount = tr.querySelectorAll('td').length;
+
+  const expandTr = document.createElement('tr');
+  expandTr.className = 'expand-row';
+  expandTr.innerHTML = `<td colspan="${colCount}">
+    <div class="expand-card">
+      <div><div class="cf-label">Driver</div><div class="cf-val">${esc(r['Driver Name'])}</div></div>
+      <div><div class="cf-label">Phone</div><div class="cf-val">${esc(r['Driver Phone'] || '—')}</div></div>
+      <div><div class="cf-label">Carrier</div><div class="cf-val">${esc(r['Carrier'])}</div></div>
+      <div><div class="cf-label">Carrier Phone</div><div class="cf-val">${esc(r['Carrier Phone'] || '—')}</div></div>
+      <div><div class="cf-label">Gate</div><div class="cf-val">${esc(r['Gate'] || '—')}</div></div>
+      <div><div class="cf-label">Lane</div><div class="cf-val">${esc(r['Lane'] || '—')}</div></div>
+      <div><div class="cf-label">Time In</div><div class="cf-val">${esc(r['Time In'] || '—')}</div></div>
+      <div><div class="cf-label">Time Out</div><div class="cf-val">${esc(r['Time Out'] || '—')}</div></div>
+      <div><div class="cf-label">Drop Off</div><div class="cf-val">${r['Drop Off'] || 0}</div></div>
+      <div><div class="cf-label">Pickup</div><div class="cf-val">${r['Pickup'] || 0}</div></div>
+      <div><div class="cf-label">Vehicle Types</div><div class="cf-val">${esc(r['Vehicle Types'] || '—')}</div></div>
+      <div><div class="cf-label">Status</div><div class="cf-val"><span class="status-badge ${statusClass}">${esc(r['Status'])}</span></div></div>
+      <div><div class="cf-label">Comments</div><div class="cf-val">${esc(r['Comments'] || '—')}</div></div>
+      <div><div class="cf-label">Signed In By</div><div class="cf-val">${esc(r['Signed In By'] || '—')}</div></div>
+      <div><div class="cf-label">Signed Out By</div><div class="cf-val">${esc(r['Signed Out By'] || '—')}</div></div>
+      <div><div class="cf-label">Queue #</div><div class="cf-val">${r._displayPos || '—'}</div></div>
+      <div class="ec-actions">${actions}</div>
+    </div>
+  </td>`;
+
+  tr.insertAdjacentElement('afterend', expandTr);
+  expandTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
   const grid = document.getElementById('cardsGrid');
   if (!filteredRecords.length) {
     grid.innerHTML = '<div class="empty-state"><div class="icon">🚛</div><p>No records found</p></div>';
