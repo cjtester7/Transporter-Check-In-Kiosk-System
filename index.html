@@ -1359,16 +1359,22 @@ function hideConfigBanner() {
 
 // ========== FILTERING & SORTING ==========
 function filterRecords() {
-  const search = document.getElementById('searchInput').value.toLowerCase();
+  const search = document.getElementById('searchInput').value.toLowerCase().trim();
+  const s = v => String(v || '').toLowerCase();
   filteredRecords = allRecords.filter(r => {
     const matchFilter = currentFilter === 'All' || r['Status'] === currentFilter;
     const matchSearch = !search ||
-      (r['Driver Name']||'').toLowerCase().includes(search) ||
-      (r['Carrier']||'').toLowerCase().includes(search) ||
-      (r['Driver Phone']||'').toLowerCase().includes(search) ||
-      (r['Lane']||'').toLowerCase().includes(search) ||
-      (r['Vehicle Types']||'').toLowerCase().includes(search) ||
-      (r['Comments']||'').toLowerCase().includes(search);
+      s(r['Driver Name']).includes(search) ||
+      s(r['Carrier']).includes(search) ||
+      s(r['Driver Phone']).includes(search) ||
+      s(r['Carrier Phone']).includes(search) ||
+      s(r['Lane']).includes(search) ||
+      s(r['Gate']).includes(search) ||
+      s(r['Vehicle Types']).includes(search) ||
+      s(r['Comments']).includes(search) ||
+      s(r['Status']).includes(search) ||
+      s(r['Signed In By']).includes(search) ||
+      s(r['Signed Out By']).includes(search);
     return matchFilter && matchSearch;
   });
 
