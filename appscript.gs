@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v9.gs
+// Version: appscript-v10.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -40,6 +40,7 @@ function doGet(e) {
       case "updateStatus": result = updateStatus(body); break;
       case "updateRecord": result = updateRecord(body); break;
       case "getQueue":     result = getQueueInfo(); break;
+      case "fixQueue":     result = fixQueueNow(); break;
       default:             result = { error: "Unknown action: " + action };
     }
     output.setContent(JSON.stringify(result));
@@ -90,7 +91,7 @@ function getSheet() {
 function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { records: [], _v: 9 };
+  if (data.length <= 1) return { records: [], _v: 10 };
   const headers = data[0];
   const tz = Session.getScriptTimeZone();
   const timeColumns = ["Time In", "Time Out"];
@@ -113,7 +114,7 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-  return { records, _v: 9 };
+  return { records, _v: 10 };
 }
 
 function checkIn(data) {
@@ -204,6 +205,14 @@ function resequenceQueue(sheet) {
       queueNum++;
     }
   }
+}
+
+// One-time fix — call this from the browser or run directly in Apps Script editor
+// to resequence all existing queue numbers in the sheet
+function fixQueueNow() {
+  const sheet = getSheet();
+  resequenceQueue(sheet);
+  return { success: true, message: "Queue resequenced successfully" };
 }
 
 function updateRecord(data) {
