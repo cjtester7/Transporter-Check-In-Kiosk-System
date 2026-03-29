@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v11.gs
+// Version: appscript-v12.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -91,7 +91,7 @@ function getSheet() {
 function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { records: [], _v: 11 };
+  if (data.length <= 1) return { records: [], _v: 12 };
   const headers = data[0];
   const tz = Session.getScriptTimeZone();
   const timeColumns = ["Time In", "Time Out"];
@@ -114,7 +114,7 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-  return { records, _v: 11 };
+  return { records, _v: 12 };
 }
 
 function checkIn(data) {
@@ -232,7 +232,12 @@ function updateRecord(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][COL["Row ID"]] == data["rowId"]) {
       const rowNum = i + 1;
-      const updatable = ["Gate", "Lane", "Drop Off", "Pickup", "Comments", "Vehicle Types", "Status"];
+      const updatable = [
+        "Driver Name", "Driver Phone", "Carrier", "Carrier Phone",
+        "Date", "Time Out", "Gate", "Lane", "Queue Position",
+        "Status", "Drop Off", "Pickup", "Vehicle Types",
+        "Comments", "Signed In By", "Signed Out By"
+      ];
       updatable.forEach(field => {
         if (data[field] !== undefined) {
           sheet.getRange(rowNum, COL[field] + 1).setValue(data[field]);

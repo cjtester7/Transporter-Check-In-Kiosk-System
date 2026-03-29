@@ -966,6 +966,44 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <button type="button" class="modal-close" onclick="closeModal('editModal')">✕</button>
     </div>
     <div class="modal-body">
+      <!-- Time In shown read-only -->
+      <div id="ed-timeInInfo" style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:0.82rem;color:var(--muted)">
+        <span style="font-weight:700;letter-spacing:0.08em;text-transform:uppercase;font-size:0.7rem;">Time In</span><br>
+        <span id="ed-timeInVal" style="color:var(--text);font-size:0.9rem"></span>
+      </div>
+      <div class="m-section-label">Driver Information</div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Driver Name</label>
+          <input type="text" id="ed-driverName" placeholder="Full name">
+        </div>
+        <div class="m-field">
+          <label>Driver Phone</label>
+          <input type="tel" id="ed-driverPhone" placeholder="(555) 000-0000">
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Carrier</label>
+          <input type="text" id="ed-carrier" placeholder="Company name">
+        </div>
+        <div class="m-field">
+          <label>Carrier Phone</label>
+          <input type="tel" id="ed-carrierPhone" placeholder="(555) 000-0000">
+        </div>
+      </div>
+      <div class="m-divider"></div>
+      <div class="m-section-label">Schedule & Assignment</div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Date</label>
+          <input type="text" id="ed-date" placeholder="MM/DD/YYYY">
+        </div>
+        <div class="m-field">
+          <label>Time Out</label>
+          <input type="text" id="ed-timeOut" placeholder="e.g. 03:30 PM">
+        </div>
+      </div>
       <div class="m-row">
         <div class="m-field">
           <label>Gate</label>
@@ -980,14 +1018,22 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
           <input type="text" id="ed-lane" placeholder="e.g. A3">
         </div>
       </div>
-      <div class="m-field">
-        <label>Status</label>
-        <select id="ed-status">
-          <option>Waiting</option>
-          <option>In Progress</option>
-          <option>Completed</option>
-        </select>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Queue Position</label>
+          <input type="number" id="ed-queuePos" min="1">
+        </div>
+        <div class="m-field">
+          <label>Status</label>
+          <select id="ed-status">
+            <option>Waiting</option>
+            <option>In Progress</option>
+            <option>Completed</option>
+          </select>
+        </div>
       </div>
+      <div class="m-divider"></div>
+      <div class="m-section-label">Load Details</div>
       <div class="m-row">
         <div class="m-field">
           <label>Drop Off #</label>
@@ -1012,6 +1058,18 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <div class="m-field">
         <label>Comments</label>
         <textarea id="ed-comments" placeholder="Notes..."></textarea>
+      </div>
+      <div class="m-divider"></div>
+      <div class="m-section-label">Sign-Off</div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Signed In By</label>
+          <input type="text" id="ed-signedInBy" placeholder="Employee name or ID">
+        </div>
+        <div class="m-field">
+          <label>Signed Out By</label>
+          <input type="text" id="ed-signedOutBy" placeholder="Employee name or ID">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1648,13 +1706,25 @@ function openEditModal(rowId) {
   selectedRowId = rowId;
   const r = allRecords.find(x => x['Row ID'] === rowId);
   if (r) {
+    // Read-only Time In display
+    document.getElementById('ed-timeInVal').textContent = r['Time In'] || '—';
+    // Editable fields
+    document.getElementById('ed-driverName').value = r['Driver Name'] || '';
+    document.getElementById('ed-driverPhone').value = r['Driver Phone'] || '';
+    document.getElementById('ed-carrier').value = r['Carrier'] || '';
+    document.getElementById('ed-carrierPhone').value = r['Carrier Phone'] || '';
+    document.getElementById('ed-date').value = r['Date'] || '';
+    document.getElementById('ed-timeOut').value = r['Time Out'] || '';
     document.getElementById('ed-gate').value = r['Gate'] || '';
     document.getElementById('ed-lane').value = r['Lane'] || '';
+    document.getElementById('ed-queuePos').value = r['Queue Position'] || '';
     document.getElementById('ed-status').value = r['Status'] || 'Waiting';
     document.getElementById('ed-dropOff').value = r['Drop Off'] || 0;
     document.getElementById('ed-pickup').value = r['Pickup'] || 0;
     document.getElementById('ed-vehicleTypes').value = r['Vehicle Types'] || '';
     document.getElementById('ed-comments').value = r['Comments'] || '';
+    document.getElementById('ed-signedInBy').value = r['Signed In By'] || '';
+    document.getElementById('ed-signedOutBy').value = r['Signed Out By'] || '';
   }
   openModal('editModal');
 }
@@ -1741,13 +1811,22 @@ async function submitEdit() {
     await callScript({
       action: "updateRecord",
       "rowId": selectedRowId,
+      "Driver Name": document.getElementById('ed-driverName').value.trim(),
+      "Driver Phone": document.getElementById('ed-driverPhone').value.trim(),
+      "Carrier": document.getElementById('ed-carrier').value.trim(),
+      "Carrier Phone": document.getElementById('ed-carrierPhone').value.trim(),
+      "Date": document.getElementById('ed-date').value.trim(),
+      "Time Out": document.getElementById('ed-timeOut').value.trim(),
       "Gate": document.getElementById('ed-gate').value,
       "Lane": document.getElementById('ed-lane').value.trim(),
+      "Queue Position": document.getElementById('ed-queuePos').value,
       "Status": document.getElementById('ed-status').value,
       "Drop Off": document.getElementById('ed-dropOff').value,
       "Pickup": document.getElementById('ed-pickup').value,
       "Vehicle Types": document.getElementById('ed-vehicleTypes').value,
-      "Comments": document.getElementById('ed-comments').value.trim()
+      "Comments": document.getElementById('ed-comments').value.trim(),
+      "Signed In By": document.getElementById('ed-signedInBy').value.trim(),
+      "Signed Out By": document.getElementById('ed-signedOutBy').value.trim()
     });
     closeModal('editModal');
     showToast('✓ Record updated', 'success');
