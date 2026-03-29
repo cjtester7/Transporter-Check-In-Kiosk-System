@@ -381,52 +381,52 @@ tbody td.muted { color: var(--muted); }
 .status-completed::before { background: var(--green); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-/* Expandable row */
+/* Clickable rows in list view */
 tbody tr.data-row {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 tbody tr.data-row:hover { background: var(--surface); }
 tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
-tbody tr.data-row.expanded td { border-bottom: none; }
 
-.expand-row td {
-  padding: 0 !important;
-  border-bottom: 2px solid var(--accent) !important;
-}
-.expand-card {
-  padding: 16px 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 12px;
-  background: var(--surface2);
-  animation: slideDown 0.2s ease;
-}
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.expand-card .cf-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 3px;
-}
-.expand-card .cf-val {
-  font-size: 0.88rem;
-  font-weight: 500;
-  color: var(--text);
-}
-.expand-card .ec-actions {
-  grid-column: 1 / -1;
+/* Card modal overlay — shown when a list row is clicked */
+.card-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
   display: flex;
-  gap: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  margin-top: 4px;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
 }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.card-modal-overlay .driver-card {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: cardPop 0.2s ease;
+  position: relative;
+}
+@keyframes cardPop {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.card-modal-close {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.card-modal-close:hover { color: var(--text); border-color: var(--muted); }
 
 /* Row action buttons */
 .row-actions { display: flex; gap: 5px; }
@@ -1427,6 +1427,7 @@ function renderView() {
 }
 
 function setView(v) {
+  closeCardModal();
   currentView = v;
   document.getElementById('listView').style.display = v === 'list' ? 'block' : 'none';
   document.getElementById('cardView').style.display = v === 'card' ? 'block' : 'none';
@@ -1467,27 +1468,19 @@ function renderTable() {
 let expandedRowId = null;
 
 function toggleExpandRow(e, tr, rowId) {
-  // If clicking a button inside the row, don't toggle
   if (e.target.closest('button')) return;
 
-  const tbody = document.getElementById('tableBody');
-
-  // Collapse currently expanded row if any
-  if (expandedRowId) {
-    const prevExpand = tbody.querySelector('.expand-row');
-    const prevTr = tbody.querySelector(`tr[data-rowid="${expandedRowId}"]`);
-    if (prevExpand) prevExpand.remove();
-    if (prevTr) {
-      prevTr.classList.remove('expanded');
-      prevTr.querySelector('td:last-child span').textContent = '▼';
-    }
-    if (expandedRowId === rowId) { expandedRowId = null; return; }
+  // If clicking the same row again, close the modal
+  if (expandedRowId === rowId) {
+    closeCardModal();
+    return;
   }
 
-  // Expand clicked row
   expandedRowId = rowId;
+
+  // Mark row as expanded
+  document.querySelectorAll('tbody tr.data-row').forEach(r => r.classList.remove('expanded'));
   tr.classList.add('expanded');
-  tr.querySelector('td:last-child span').textContent = '▲';
 
   const r = filteredRecords.find(x => x['Row ID'] === rowId);
   if (!r) return;
@@ -1495,39 +1488,59 @@ function toggleExpandRow(e, tr, rowId) {
   const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
                       r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
   const actions = buildActions(r);
-  const colCount = tr.querySelectorAll('td').length;
 
-  const expandTr = document.createElement('tr');
-  expandTr.className = 'expand-row';
-  const f = (label, val) => '<div><div class="cf-label">' + label + '</div><div class="cf-val">' + val + '</div></div>';
-  expandTr.innerHTML = '<td colspan="' + colCount + '">' +
-    '<div class="expand-card">' +
-    f('Driver', esc(r['Driver Name'])) +
-    f('Phone', esc(r['Driver Phone'] || '—')) +
-    f('Carrier', esc(r['Carrier'])) +
-    f('Carrier Phone', esc(r['Carrier Phone'] || '—')) +
-    f('Gate', esc(r['Gate'] || '—')) +
-    f('Lane', esc(r['Lane'] || '—')) +
-    f('Time In', esc(r['Time In'] || '—')) +
-    f('Time Out', esc(r['Time Out'] || '—')) +
-    f('Drop Off', r['Drop Off'] || 0) +
-    f('Pickup', r['Pickup'] || 0) +
-    f('Vehicle Types', esc(r['Vehicle Types'] || '—')) +
-    f('Status', '<span class="status-badge ' + statusClass + '">' + esc(r['Status']) + '</span>') +
-    f('Comments', esc(r['Comments'] || '—')) +
-    f('Signed In By', esc(r['Signed In By'] || '—')) +
-    f('Signed Out By', esc(r['Signed Out By'] || '—')) +
-    f('Queue #', r._displayPos || '—') +
-    '<div class="ec-actions">' + actions + '</div>' +
-    '</div></td>';
+  // Build card HTML matching the card view exactly
+  const cardHtml =
+    '<div class="card-top">' +
+      '<div>' +
+        '<div class="card-name">' + esc(r['Driver Name']) + '</div>' +
+        '<div class="card-carrier">' + esc(r['Carrier']) + '</div>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div class="card-queue">#' + (r._displayPos || '?') + '</div>' +
+        '<span class="status-badge ' + statusClass + '">' + esc(r['Status']) + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card-fields">' +
+      '<div class="card-field"><div class="cf-label">Driver Phone</div><div class="cf-val">' + esc(r['Driver Phone'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Carrier Phone</div><div class="cf-val">' + esc(r['Carrier Phone'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Time In</div><div class="cf-val">' + esc(r['Time In'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Time Out</div><div class="cf-val">' + esc(r['Time Out'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Drop Off</div><div class="cf-val">' + (r['Drop Off'] || 0) + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">' + (r['Pickup'] || 0) + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Gate</div><div class="cf-val">' + esc(r['Gate'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Lane</div><div class="cf-val">' + esc(r['Lane'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Types</div><div class="cf-val">' + esc(r['Vehicle Types'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Signed In By</div><div class="cf-val">' + esc(r['Signed In By'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Signed Out By</div><div class="cf-val">' + esc(r['Signed Out By'] || '—') + '</div></div>' +
+    '</div>' +
+    (r['Comments'] ? '<div style="font-size:0.78rem;color:var(--muted);padding:8px 0;border-top:1px solid var(--border);margin-top:4px">' + esc(r['Comments']) + '</div>' : '') +
+    '<div class="card-actions">' + actions + '</div>';
 
-  tr.insertAdjacentElement('afterend', expandTr);
-  expandTr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'card-modal-overlay';
+  overlay.id = 'cardModalOverlay';
+  overlay.onclick = function(ev) { if (ev.target === overlay) closeCardModal(); };
+
+  const card = document.createElement('div');
+  card.className = 'driver-card';
+  card.innerHTML = '<button type="button" class="card-modal-close" onclick="closeCardModal()">✕</button>' + cardHtml;
+
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+}
+
+function closeCardModal() {
+  const overlay = document.getElementById('cardModalOverlay');
+  if (overlay) overlay.remove();
+  document.querySelectorAll('tbody tr.data-row').forEach(r => r.classList.remove('expanded'));
+  expandedRowId = null;
 }
 
 function renderCards() {
+  const grid = document.getElementById('cardsGrid');
   if (!filteredRecords.length) {
-    grid.innerHTML = '<div class="empty-state"><div class="icon">🚛</div><p>No records found</p></div>';
     return;
   }
 
@@ -1877,10 +1890,11 @@ function showToast(msg, type = 'success') {
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
-  // Escape only closes the QR modal - never data-entry modals (prevents accidental data loss)
+  // Escape only closes the QR modal and card modal - never data-entry modals
   if (e.key === 'Escape') {
     const qr = document.getElementById('qrModal');
     if (qr.classList.contains('open')) closeModal('qrModal');
+    closeCardModal();
   }
   // Inside data-entry modals: block Enter on inputs/selects and advance focus to next field
   // Block Enter on non-primary buttons to prevent accidental Cancel/Close activation
