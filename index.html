@@ -1327,6 +1327,16 @@ function filterRecords() {
 
   // Sort
   filteredRecords.sort((a, b) => {
+    // Always sort active records by check-in timestamp for correct chronological order
+    if (sortField === 'Queue Position') {
+      const aActive = a['Status'] === 'Waiting' || a['Status'] === 'In Progress';
+      const bActive = b['Status'] === 'Waiting' || b['Status'] === 'In Progress';
+      if (aActive && bActive) {
+        const aTs = Number(a['Check-In Timestamp']) || 0;
+        const bTs = Number(b['Check-In Timestamp']) || 0;
+        return sortAsc ? aTs - bTs : bTs - aTs;
+      }
+    }
     let av = a[sortField] || '', bv = b[sortField] || '';
     if (!isNaN(av) && !isNaN(bv)) { av = Number(av); bv = Number(bv); }
     else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
@@ -1697,7 +1707,7 @@ function exportCSV() {
     'Date', 'Driver Name', 'Driver Phone', 'Carrier', 'Carrier Phone',
     'Gate', 'Lane', 'Time In', 'Time Out', 'Drop Off', 'Pickup',
     'Status', 'Vehicle Types', 'Comments', 'Queue Position',
-    'Est. Wait (min)', 'Signed In By', 'Signed Out By', 'Row ID'
+    'Est. Wait (min)', 'Signed In By', 'Signed Out By', 'Row ID', 'Check-In Timestamp'
   ];
 
   const escape = val => {

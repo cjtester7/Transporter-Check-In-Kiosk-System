@@ -1,5 +1,5 @@
 // CarsRUs Transporter Check-In System — Apps Script Backend
-// Version: appscript-v10.gs
+// Version: appscript-v11.gs
 // Deploy as Web App: Execute as Me, Anyone can access
 
 // ============================================================
@@ -12,7 +12,7 @@ const HEADERS = [
   "Date", "Driver Name", "Driver Phone", "Carrier", "Carrier Phone",
   "Lane", "Time In", "Time Out", "Drop Off", "Pickup",
   "Status", "Vehicle Types", "Comments", "Gate", "Queue Position",
-  "Est. Wait (min)", "Signed In By", "Signed Out By", "Row ID"
+  "Est. Wait (min)", "Signed In By", "Signed Out By", "Row ID", "Check-In Timestamp"
 ];
 
 // Column index map (0-based) — update if HEADERS order changes
@@ -91,7 +91,7 @@ function getSheet() {
 function getAllRecords() {
   const sheet = getSheet();
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { records: [], _v: 10 };
+  if (data.length <= 1) return { records: [], _v: 11 };
   const headers = data[0];
   const tz = Session.getScriptTimeZone();
   const timeColumns = ["Time In", "Time Out"];
@@ -114,7 +114,7 @@ function getAllRecords() {
     obj._rowIndex = i + 2;
     return obj;
   });
-  return { records, _v: 10 };
+  return { records, _v: 11 };
 }
 
 function checkIn(data) {
@@ -147,10 +147,11 @@ function checkIn(data) {
       case "Comments":       return data["Comments"] || "";
       case "Queue Position": return queuePos;
       case "Est. Wait (min)":return estWait;
-      case "Signed In By":   return data["Signed In By"] || "Self";
-      case "Signed Out By":  return "";
-      case "Row ID":         return rowId;
-      default:               return "";
+      case "Signed In By":        return data["Signed In By"] || "Self";
+      case "Signed Out By":       return "";
+      case "Row ID":              return rowId;
+      case "Check-In Timestamp":  return now.getTime(); // epoch ms — used for sorting
+      default:                    return "";
     }
   });
 
@@ -191,20 +192,30 @@ function updateStatus(data) {
 }
 
 // Renumbers Queue Position for all active (Waiting/In Progress) records
-// in the order they appear in the sheet (chronological by row).
-// Completed records are set to 0 to indicate they are no longer in queue.
+// sorted by Check-In Timestamp so order is always chronologically correct.
 function resequenceQueue(sheet) {
   const allData = sheet.getDataRange().getValues();
-  let queueNum = 1;
+  const headers = allData[0];
+
+  // Collect active rows with their sheet row number and timestamp
+  const activeRows = [];
   for (let i = 1; i < allData.length; i++) {
     const status = allData[i][COL["Status"]];
-    const rowNum = i + 1;
     if (status === "Waiting" || status === "In Progress") {
-      sheet.getRange(rowNum, COL["Queue Position"] + 1).setValue(queueNum);
-      sheet.getRange(rowNum, COL["Est. Wait (min)"] + 1).setValue((queueNum - 1) * 20);
-      queueNum++;
+      const ts = allData[i][COL["Check-In Timestamp"]] || 0;
+      activeRows.push({ rowNum: i + 1, ts: Number(ts) });
     }
   }
+
+  // Sort by timestamp ascending (earliest check-in = lowest queue number)
+  activeRows.sort((a, b) => a.ts - b.ts);
+
+  // Write sequential queue positions back to sheet
+  activeRows.forEach((r, idx) => {
+    const queueNum = idx + 1;
+    sheet.getRange(r.rowNum, COL["Queue Position"] + 1).setValue(queueNum);
+    sheet.getRange(r.rowNum, COL["Est. Wait (min)"] + 1).setValue(idx * 20);
+  });
 }
 
 // One-time fix — call this from the browser or run directly in Apps Script editor
