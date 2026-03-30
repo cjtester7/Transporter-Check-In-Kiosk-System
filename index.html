@@ -1839,13 +1839,12 @@ async function submitEdit() {
 async function setStatus(rowId, status) {
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
-    // Update local record immediately so card view reflects change without waiting for reload
+    closeCardModal();
     const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
     if (idx !== -1) allRecords[idx]['Status'] = status;
     filterRecords();
     updateStats();
     showToast(`✓ Status updated to ${status}`, 'success');
-    // Then do a full reload in background to sync any other changes
     loadRecords();
   } catch (err) {
     showToast(`✗ Status update failed: ${err.message}`, 'error');
