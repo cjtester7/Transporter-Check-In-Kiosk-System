@@ -806,10 +806,10 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 
 <!-- Login Screen -->
 <div class="login-screen" id="loginScreen">
-  <div class="login-card">
+  <div class="login-card" id="loginCard">
     <div class="login-brand">CARS<span style="color:#fff">RUS</span></div>
     <div class="login-sub">Gate Operations — Staff Login</div>
-    <div class="login-error" id="loginError">Incorrect username or password.</div>
+    <div class="login-error" id="loginError"></div>
     <div class="login-field">
       <label>Username</label>
       <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username">
@@ -819,6 +819,146 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password">
     </div>
     <button type="button" class="login-btn" onclick="doLogin()">Sign In</button>
+    <div style="text-align:center;margin-top:16px;font-size:0.82rem;color:var(--muted)">
+      New employee? <button type="button" onclick="showRegisterForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.82rem;text-decoration:underline;padding:0">Request an account</button>
+    </div>
+  </div>
+
+  <!-- Employee Registration sub-form -->
+  <div class="login-card" id="registerCard" style="display:none">
+    <div class="login-brand" style="font-size:1.4rem">Request Account</div>
+    <div class="login-sub">Employee accounts require admin approval</div>
+    <div class="login-error" id="registerError"></div>
+    <div class="login-field">
+      <label>Full Name</label>
+      <input type="text" id="regName" placeholder="Your full name">
+    </div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="regUsername" placeholder="Choose a username">
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="regPassword" placeholder="Min. 6 characters">
+    </div>
+    <button type="button" class="login-btn" onclick="doRegister()">Submit Request</button>
+    <div style="text-align:center;margin-top:16px">
+      <button type="button" onclick="showLoginForm()" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:0.82rem;text-decoration:underline;padding:0">← Back to Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <span class="modal-title">🔒 Change Password</span>
+      <button type="button" class="modal-close" onclick="closeModal('changePasswordModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="m-field">
+        <label>Current Password <span class="req">*</span></label>
+        <input type="password" id="cp-current" placeholder="Your current password">
+      </div>
+      <div class="m-field">
+        <label>New Password <span class="req">*</span></label>
+        <input type="password" id="cp-new" placeholder="Min. 6 characters">
+      </div>
+      <div class="m-field">
+        <label>Confirm New Password <span class="req">*</span></label>
+        <input type="password" id="cp-confirm" placeholder="Repeat new password">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn secondary" onclick="closeModal('changePasswordModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" onclick="submitChangePassword()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Management Modal -->
+<div class="modal-overlay" id="userMgmtModal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <span class="modal-title">👥 User Management</span>
+      <button type="button" class="modal-close" onclick="closeModal('userMgmtModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+        <input type="text" id="um-search" placeholder="Search users..." oninput="renderUserTable()" style="flex:1;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Barlow',sans-serif;font-size:0.88rem;outline:none">
+        <button type="button" class="modal-btn primary" onclick="openCreateUserModal()" style="white-space:nowrap">+ New User</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+          <thead>
+            <tr style="background:var(--surface2)">
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap">Name</th>
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase">Username</th>
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase">Group</th>
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase">Status</th>
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase">Last Login</th>
+              <th style="padding:8px 10px;text-align:left;color:var(--muted);font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn secondary" onclick="closeModal('userMgmtModal')">Close</button>
+      <button type="button" class="modal-btn primary" onclick="loadUsers()">↺ Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit User Modal -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <span class="modal-title" id="editUserTitle">New User</span>
+      <button type="button" class="modal-close" onclick="closeModal('editUserModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="m-row">
+        <div class="m-field">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" id="eu-name" placeholder="Display name">
+        </div>
+        <div class="m-field">
+          <label>Username <span class="req">*</span></label>
+          <input type="text" id="eu-username" placeholder="Login username">
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-field">
+          <label>Group <span class="req">*</span></label>
+          <select id="eu-group">
+            <option value="Admin">Admin</option>
+            <option value="Employee">Employee</option>
+            <option value="Driver">Driver</option>
+          </select>
+        </div>
+        <div class="m-field">
+          <label>Status <span class="req">*</span></label>
+          <select id="eu-status">
+            <option value="Active">Active</option>
+            <option value="Pending">Pending</option>
+            <option value="Suspended">Suspended</option>
+          </select>
+        </div>
+      </div>
+      <div class="m-field">
+        <label>Password <span id="eu-pass-hint" style="color:var(--muted);font-weight:400">(leave blank to keep existing)</span></label>
+        <input type="password" id="eu-password" placeholder="Set or reset password">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="modal-btn danger" id="eu-deleteBtn" onclick="deleteUserConfirm()" style="margin-right:auto">Delete</button>
+      <button type="button" class="modal-btn secondary" onclick="closeModal('editUserModal')">Cancel</button>
+      <button type="button" class="modal-btn primary" onclick="saveUser()">Save</button>
+    </div>
   </div>
 </div>
 
@@ -1140,6 +1280,16 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <div class="nav-item" id="nav-settings" style="display:none" onclick="openSettingsModal()">
         <span class="icon">⚙</span> Settings
       </div>
+      <div class="nav-item" id="nav-users" style="display:none" onclick="openUserMgmt()">
+        <span class="icon">👥</span> Users
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <div class="nav-item" onclick="openModal('changePasswordModal')">
+        <span class="icon">🔒</span> Change Password
+      </div>
     </div>
 
     <div class="sidebar-footer">
@@ -1256,12 +1406,6 @@ const DEFAULT_CHECKIN_URL = "YOUR_CHECKIN_URL_HERE";
 let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || DEFAULT_APPS_SCRIPT_URL;
 let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || DEFAULT_CHECKIN_URL;
 
-// ========== USERS ==========
-const USERS = [
-  { username: 'admin', password: '1234', role: 'admin', displayName: 'Admin' },
-  { username: 'user1', password: 'user1', role: 'user',  displayName: 'User 1' }
-];
-
 // ========== STATE ==========
 let allRecords = [];
 let filteredRecords = [];
@@ -1271,25 +1415,59 @@ let sortField = 'Queue Position';
 let sortAsc = true;
 let selectedRowId = null;
 let currentUser = null;
+let allUsers = [];
+let editingUsername = null;
 
 // ========== AUTH ==========
-function doLogin() {
-  const username = document.getElementById('loginUsername').value.trim().toLowerCase();
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
   const password = document.getElementById('loginPassword').value;
   const err = document.getElementById('loginError');
-
-  const user = USERS.find(u => u.username === username && u.password === password);
-  if (!user) {
+  err.classList.remove('show');
+  if (!username || !password) {
+    err.textContent = 'Please enter your username and password.';
     err.classList.add('show');
-    document.getElementById('loginPassword').value = '';
     return;
   }
+  try {
+    const res = await callScript({ action: 'login', username, password });
+    if (res.error) {
+      err.textContent = res.error;
+      err.classList.add('show');
+      document.getElementById('loginPassword').value = '';
+      return;
+    }
+    currentUser = res.user;
+    sessionStorage.setItem('carsrus_user', JSON.stringify(res.user));
+    applyUserSession();
+    document.getElementById('loginScreen').style.display = 'none';
+    loadRecords();
+  } catch(e) {
+    err.textContent = 'Connection error. Please try again.';
+    err.classList.add('show');
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const err = document.getElementById('registerError');
   err.classList.remove('show');
-  currentUser = user;
-  sessionStorage.setItem('carsrus_user', JSON.stringify(user));
-  applyUserSession();
-  document.getElementById('loginScreen').style.display = 'none';
-  loadRecords();
+  if (!name || !username || !password) {
+    err.textContent = 'All fields are required.';
+    err.classList.add('show');
+    return;
+  }
+  try {
+    const res = await callScript({ action: 'register', displayName: name, username, password, group: 'Employee' });
+    if (res.error) { err.textContent = res.error; err.classList.add('show'); return; }
+    showToast('✓ Account requested. An admin will approve your access shortly.', 'success');
+    showLoginForm();
+  } catch(e) {
+    err.textContent = 'Connection error. Please try again.';
+    err.classList.add('show');
+  }
 }
 
 function doLogout() {
@@ -1297,31 +1475,176 @@ function doLogout() {
   sessionStorage.removeItem('carsrus_user');
   document.getElementById('loginUsername').value = '';
   document.getElementById('loginPassword').value = '';
+  showLoginForm();
   document.getElementById('loginScreen').style.display = 'flex';
 }
 
+function showLoginForm() {
+  document.getElementById('loginCard').style.display = '';
+  document.getElementById('registerCard').style.display = 'none';
+  document.getElementById('loginError').classList.remove('show');
+}
+
+function showRegisterForm() {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('registerCard').style.display = '';
+  document.getElementById('registerError').classList.remove('show');
+}
+
 function applyUserSession() {
-  // Sidebar user info
   document.getElementById('sb-empName').textContent = currentUser.displayName;
-  document.getElementById('sb-empRole').textContent = currentUser.role === 'admin' ? 'Administrator' : 'Gate Staff';
+  document.getElementById('sb-empRole').textContent = currentUser.group || 'Staff';
   const badge = document.getElementById('sb-roleBadge');
-  badge.textContent = currentUser.role === 'admin' ? 'Admin' : 'User';
-  badge.className = 'role-badge ' + (currentUser.role === 'admin' ? 'role-admin' : 'role-user');
-
-  // Settings nav only visible to admin
-  document.getElementById('nav-settings').style.display = currentUser.role === 'admin' ? 'flex' : 'none';
-
-  // Pre-fill Signed In By with display name
+  badge.textContent = currentUser.group;
+  const isAdmin = currentUser.group === 'Admin';
+  badge.className = 'role-badge ' + (isAdmin ? 'role-admin' : 'role-user');
+  document.getElementById('nav-settings').style.display = isAdmin ? 'flex' : 'none';
+  document.getElementById('nav-users').style.display = isAdmin ? 'flex' : 'none';
   document.getElementById('ci-signedInBy').value = currentUser.displayName;
+}
+
+// ========== USER MANAGEMENT ==========
+async function loadUsers() {
+  try {
+    const res = await callScript({ action: 'getUsers' });
+    if (res.error) { showToast('Could not load users: ' + res.error, 'error'); return; }
+    allUsers = res.users || [];
+    renderUserTable();
+  } catch(e) {
+    showToast('Connection error loading users.', 'error');
+  }
+}
+
+function renderUserTable() {
+  const search = (document.getElementById('um-search').value || '').toLowerCase();
+  const tbody = document.getElementById('userTableBody');
+  const filtered = allUsers.filter(u =>
+    (u.displayName || '').toLowerCase().includes(search) ||
+    (u.username || '').toLowerCase().includes(search) ||
+    (u.group || '').toLowerCase().includes(search) ||
+    (u.status || '').toLowerCase().includes(search)
+  );
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">No users found</td></tr>';
+    return;
+  }
+  const statusColor = s => s === 'Active' ? 'var(--green)' : s === 'Pending' ? 'var(--orange)' : 'var(--red)';
+  tbody.innerHTML = filtered.map(u => {
+    const isMaster = u.username === 'superadmin';
+    return '<tr style="border-bottom:1px solid var(--border)">' +
+      '<td style="padding:8px 10px;font-weight:600">' + esc(u.displayName) + '</td>' +
+      '<td style="padding:8px 10px;color:var(--muted)">' + esc(u.username) + '</td>' +
+      '<td style="padding:8px 10px">' + esc(u.group) + '</td>' +
+      '<td style="padding:8px 10px;color:' + statusColor(u.status) + ';font-weight:600">' + esc(u.status) + '</td>' +
+      '<td style="padding:8px 10px;color:var(--muted);font-size:0.78rem">' + esc(u.lastLogin || '—') + '</td>' +
+      '<td style="padding:8px 10px">' +
+        (isMaster ? '<span style="color:var(--muted);font-size:0.75rem">Protected</span>' :
+          '<button type="button" class="action-btn" onclick="openEditUserModal(\'' + esc(u.username) + '\')">Edit</button>') +
+      '</td></tr>';
+  }).join('');
+}
+
+function openUserMgmt() {
+  openModal('userMgmtModal');
+  loadUsers();
+}
+
+function openCreateUserModal() {
+  editingUsername = null;
+  document.getElementById('editUserTitle').textContent = 'New User';
+  document.getElementById('eu-name').value = '';
+  document.getElementById('eu-username').value = '';
+  document.getElementById('eu-username').disabled = false;
+  document.getElementById('eu-group').value = 'Employee';
+  document.getElementById('eu-status').value = 'Active';
+  document.getElementById('eu-password').value = '';
+  document.getElementById('eu-pass-hint').textContent = '(required for new users)';
+  document.getElementById('eu-deleteBtn').style.display = 'none';
+  openModal('editUserModal');
+}
+
+function openEditUserModal(username) {
+  const u = allUsers.find(x => x.username === username);
+  if (!u) return;
+  editingUsername = username;
+  document.getElementById('editUserTitle').textContent = 'Edit User';
+  document.getElementById('eu-name').value = u.displayName || '';
+  document.getElementById('eu-username').value = u.username;
+  document.getElementById('eu-username').disabled = true;
+  document.getElementById('eu-group').value = u.group || 'Employee';
+  document.getElementById('eu-status').value = u.status || 'Active';
+  document.getElementById('eu-password').value = '';
+  document.getElementById('eu-pass-hint').textContent = '(leave blank to keep existing)';
+  document.getElementById('eu-deleteBtn').style.display = '';
+  openModal('editUserModal');
+}
+
+async function saveUser() {
+  const name     = document.getElementById('eu-name').value.trim();
+  const username = document.getElementById('eu-username').value.trim();
+  const group    = document.getElementById('eu-group').value;
+  const status   = document.getElementById('eu-status').value;
+  const password = document.getElementById('eu-password').value;
+  if (!name || !username) { showToast('Name and username are required.', 'error'); return; }
+  if (!editingUsername && !password) { showToast('Password is required for new users.', 'error'); return; }
+  try {
+    let res;
+    if (editingUsername) {
+      const payload = { action: 'updateUser', username, displayName: name, group, status };
+      if (password) payload.newPassword = password;
+      res = await callScript(payload);
+    } else {
+      res = await callScript({ action: 'register', username, displayName: name, password, group });
+      if (!res.error) res = await callScript({ action: 'updateUser', username, group, status });
+    }
+    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+    closeModal('editUserModal');
+    showToast('✓ User saved successfully', 'success');
+    loadUsers();
+  } catch(e) {
+    showToast('Connection error.', 'error');
+  }
+}
+
+async function deleteUserConfirm() {
+  if (!editingUsername) return;
+  if (!confirm('Are you sure you want to delete user "' + editingUsername + '"? This cannot be undone.')) return;
+  try {
+    const res = await callScript({ action: 'deleteUser', username: editingUsername });
+    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+    closeModal('editUserModal');
+    showToast('✓ User deleted', 'success');
+    loadUsers();
+  } catch(e) {
+    showToast('Connection error.', 'error');
+  }
+}
+
+// ========== CHANGE PASSWORD ==========
+async function submitChangePassword() {
+  const current  = document.getElementById('cp-current').value;
+  const newPass  = document.getElementById('cp-new').value;
+  const confirm  = document.getElementById('cp-confirm').value;
+  if (!current || !newPass || !confirm) { showToast('Please fill in all password fields.', 'error'); return; }
+  if (newPass !== confirm) { showToast('New passwords do not match.', 'error'); return; }
+  if (newPass.length < 6) { showToast('New password must be at least 6 characters.', 'error'); return; }
+  try {
+    const res = await callScript({ action: 'changePassword', username: currentUser.username, currentPassword: current, newPassword: newPass });
+    if (res.error) { showToast('Error: ' + res.error, 'error'); return; }
+    closeModal('changePasswordModal');
+    document.getElementById('cp-current').value = '';
+    document.getElementById('cp-new').value = '';
+    document.getElementById('cp-confirm').value = '';
+    showToast('✓ Password updated successfully', 'success');
+  } catch(e) {
+    showToast('Connection error.', 'error');
+  }
 }
 
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
-  // Start live clock
   updateClock();
   setInterval(updateClock, 1000);
-
-  // Restore theme preference
   applyTheme();
 
   // Restore session if still active (page refresh)
@@ -1335,9 +1658,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Enter key on login fields
   ['loginUsername','loginPassword'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter') doLogin();
-    });
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
   });
 
   setInterval(() => {
@@ -1854,7 +2175,7 @@ async function setStatus(rowId, status) {
 
 // ========== SETTINGS ==========
 function openSettingsModal() {
-  if (!currentUser || currentUser.role !== 'admin') {
+  if (!currentUser || currentUser.group !== 'Admin') {
     showToast('⚠ Settings are restricted to admin only.', 'error');
     return;
   }

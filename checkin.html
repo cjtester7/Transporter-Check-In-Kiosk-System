@@ -6,378 +6,122 @@
 <title>CarsRUs — Driver Check-In</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0d0f14;
-    --surface: #161a24;
-    --surface2: #1e2433;
-    --border: #2a3045;
-    --accent: #f0b429;
-    --accent2: #e8431a;
-    --text: #eef0f6;
-    --muted: #7a8299;
-    --green: #22c55e;
-    --blue: #3b82f6;
-    --radius: 12px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; }
+:root {
+  --bg: #0d0f14; --surface: #161a24; --surface2: #1e2433;
+  --border: #2a3045; --accent: #f0b429; --text: #eef0f6;
+  --muted: #7a8299; --green: #22c55e; --blue: #3b82f6;
+  --red: #ef4444; --radius: 12px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; }
 
-  .kiosk-wrap {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 0 60px;
-  }
+.kiosk-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 0 0 60px; }
 
-  /* Header */
-  .kiosk-header {
-    width: 100%;
-    background: linear-gradient(135deg, #0d0f14 0%, #1a1f30 100%);
-    border-bottom: 3px solid var(--accent);
-    padding: 20px 24px;
-    text-align: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .kiosk-header .brand {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 900;
-    font-size: 2rem;
-    letter-spacing: 0.08em;
-    color: var(--accent);
-    line-height: 1;
-  }
-  .kiosk-header .subtitle {
-    font-size: 0.8rem;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-top: 4px;
-  }
+.kiosk-header {
+  width: 100%; background: linear-gradient(135deg, #0d0f14 0%, #1a1f30 100%);
+  border-bottom: 3px solid var(--accent); padding: 20px 24px;
+  text-align: center; position: sticky; top: 0; z-index: 100;
+}
+.kiosk-header .brand { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 2rem; letter-spacing: 0.08em; color: var(--accent); }
+.kiosk-header .subtitle { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: 4px; }
 
-  /* Steps indicator */
-  .steps-bar {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    margin: 28px auto 0;
-    max-width: 380px;
-    width: calc(100% - 48px);
-  }
-  .step-dot {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: var(--muted);
-    transition: all 0.3s;
-    flex-shrink: 0;
-  }
-  .step-dot.active { background: var(--accent); border-color: var(--accent); color: #000; }
-  .step-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
-  .step-line { flex: 1; height: 2px; background: var(--border); }
-  .step-line.done { background: var(--green); }
+.form-container { width: 100%; max-width: 480px; padding: 0 20px; margin-top: 28px; }
 
-  /* Form container */
-  .form-container {
-    width: 100%;
-    max-width: 480px;
-    padding: 0 20px;
-    margin-top: 28px;
-  }
+/* Screens */
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp 0.25s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-  /* Step screens */
-  .step-screen { display: none; }
-  .step-screen.active { display: block; animation: fadeUp 0.3s ease; }
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+.screen-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.5rem; margin-bottom: 6px; }
+.screen-desc { font-size: 0.88rem; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
 
-  .step-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 0.03em;
-    color: var(--text);
-    margin-bottom: 6px;
-  }
-  .step-desc {
-    font-size: 0.88rem;
-    color: var(--muted);
-    margin-bottom: 22px;
-    line-height: 1.5;
-  }
+/* Welcome screen */
+.welcome-options { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.option-btn {
+  width: 100%; padding: 18px 20px; border-radius: var(--radius);
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text); font-family: 'Barlow', sans-serif;
+  font-size: 1rem; font-weight: 600; cursor: pointer;
+  text-align: left; display: flex; align-items: center; gap: 14px;
+  transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.option-btn:hover, .option-btn:active { border-color: var(--accent); background: rgba(240,180,41,0.06); }
+.option-btn .ob-icon { font-size: 1.5rem; width: 36px; text-align: center; flex-shrink: 0; }
+.option-btn .ob-text .ob-title { font-size: 1rem; font-weight: 700; }
+.option-btn .ob-text .ob-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+.option-btn.guest-btn { border-color: var(--blue); }
+.option-btn.guest-btn:hover { background: rgba(59,130,246,0.08); }
 
-  /* Fields */
-  .field { margin-bottom: 16px; }
-  .field label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 7px;
-  }
-  .field label span.req { color: var(--accent); margin-left: 2px; }
-  .field input, .field select, .field textarea {
-    width: 100%;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 14px 16px;
-    color: var(--text);
-    font-family: 'Barlow', sans-serif;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-    -webkit-appearance: none;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus {
-    border-color: var(--accent);
-  }
-  .field textarea { resize: none; min-height: 80px; }
-  .field select option { background: #1e2433; }
+/* Fields */
+.field { margin-bottom: 16px; }
+.field label { display: block; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 7px; }
+.field label span.req { color: var(--accent); margin-left: 2px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; color: var(--text);
+  font-family: 'Barlow', sans-serif; font-size: 1rem; outline: none;
+  transition: border-color 0.2s; -webkit-appearance: none;
+}
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field select option { background: #1e2433; }
+.field textarea { resize: none; min-height: 80px; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
-  /* Row fields */
-  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* Counter */
+.counter-wrap { display: flex; align-items: center; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.counter-btn { width: 52px; height: 52px; background: var(--surface2); border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; flex-shrink: 0; transition: background 0.15s; -webkit-tap-highlight-color: transparent; }
+.counter-btn:active { background: var(--accent); color: #000; }
+.counter-val { flex: 1; text-align: center; font-family: 'Barlow Condensed', sans-serif; font-size: 1.6rem; font-weight: 700; }
 
-  /* Counter fields */
-  .counter-wrap {
-    display: flex; align-items: center; gap: 0;
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .counter-btn {
-    width: 52px; height: 52px;
-    background: var(--surface2);
-    border: none;
-    color: var(--text);
-    font-size: 1.4rem;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background 0.15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .counter-btn:active { background: var(--accent); color: #000; }
-  .counter-val {
-    flex: 1;
-    text-align: center;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text);
-  }
+/* Vehicle type pills */
+.vehicle-types { display: flex; flex-wrap: wrap; gap: 8px; }
+.vtype-pill input { position: absolute; opacity: 0; pointer-events: none; }
+.vtype-pill label { display: block; padding: 8px 16px; border-radius: 100px; border: 1.5px solid var(--border); font-size: 0.85rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+.vtype-pill input:checked + label { background: var(--accent); border-color: var(--accent); color: #000; }
 
-  /* Checkbox pills */
-  .vehicle-types { display: flex; flex-wrap: wrap; gap: 8px; }
-  .vtype-pill input { position: absolute; opacity: 0; pointer-events: none; }
-  .vtype-pill label {
-    display: block;
-    padding: 8px 16px;
-    border-radius: 100px;
-    border: 1.5px solid var(--border);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    letter-spacing: 0.03em;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .vtype-pill input:checked + label {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #000;
-  }
+/* Buttons */
+.btn-primary { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: var(--radius); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 1.1rem; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; margin-top: 8px; transition: opacity 0.15s; -webkit-tap-highlight-color: transparent; }
+.btn-primary:active { opacity: 0.88; }
+.btn-secondary { width: 100%; padding: 14px; background: transparent; color: var(--muted); border: 1.5px solid var(--border); border-radius: var(--radius); font-family: 'Barlow', sans-serif; font-weight: 500; font-size: 0.9rem; cursor: pointer; margin-top: 10px; transition: border-color 0.2s, color 0.2s; }
+.btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+.btn-link { background: none; border: none; color: var(--accent); font-size: 0.85rem; cursor: pointer; text-decoration: underline; padding: 0; font-family: 'Barlow', sans-serif; }
 
-  /* Buttons */
-  .btn-primary {
-    width: 100%;
-    padding: 16px;
-    background: var(--accent);
-    color: #000;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    font-size: 1.1rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    cursor: pointer;
-    margin-top: 8px;
-    transition: opacity 0.15s, transform 0.1s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
-  .btn-secondary {
-    width: 100%;
-    padding: 14px;
-    background: transparent;
-    color: var(--muted);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    font-family: 'Barlow', sans-serif;
-    font-weight: 500;
-    font-size: 0.9rem;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
 
-  /* Divider */
-  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+/* Error / info */
+.error-msg { background: rgba(239,68,68,0.1); border: 1.5px solid rgba(239,68,68,0.3); border-radius: var(--radius); padding: 12px 16px; font-size: 0.85rem; color: #f87171; margin-bottom: 16px; display: none; }
+.error-msg.show { display: block; }
+.info-msg { background: rgba(59,130,246,0.08); border: 1.5px solid rgba(59,130,246,0.3); border-radius: var(--radius); padding: 12px 16px; font-size: 0.85rem; color: #93c5fd; margin-bottom: 16px; line-height: 1.5; }
 
-  /* Confirmation card */
-  .confirm-card {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 20px;
-  }
-  .confirm-card .row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
-    gap: 12px;
-  }
-  .confirm-card .row:last-child { border-bottom: none; }
-  .confirm-card .row .lbl {
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-  .confirm-card .row .val {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text);
-    text-align: right;
-  }
+/* Success screen */
+.success-badge { width: 88px; height: 88px; background: rgba(34,197,94,0.15); border: 3px solid var(--green); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2.2rem; }
+.queue-number { font-family: 'Barlow Condensed', sans-serif; font-size: 5rem; font-weight: 900; color: var(--accent); line-height: 1; margin: 16px 0 4px; text-align: center; }
+.queue-label { font-size: 0.8rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-bottom: 20px; text-align: center; }
+.wait-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 100px; padding: 10px 20px; font-size: 0.9rem; margin-bottom: 24px; }
+.wait-badge .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* Success screen */
-  .success-screen {
-    text-align: center;
-    padding: 20px 0;
-  }
-  .success-badge {
-    width: 88px; height: 88px;
-    background: rgba(34, 197, 94, 0.15);
-    border: 3px solid var(--green);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 2.2rem;
-  }
-  .queue-number {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 5rem;
-    font-weight: 900;
-    color: var(--accent);
-    line-height: 1;
-    margin: 16px 0 4px;
-  }
-  .queue-label {
-    font-size: 0.8rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 20px;
-  }
-  .wait-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: var(--surface2);
-    border: 1.5px solid var(--border);
-    border-radius: 100px;
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    color: var(--text);
-    margin-bottom: 24px;
-  }
-  .wait-badge .dot {
-    width: 8px; height: 8px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-  .info-box {
-    background: var(--surface);
-    border-left: 3px solid var(--blue);
-    border-radius: 0 var(--radius) var(--radius) 0;
-    padding: 14px 16px;
-    text-align: left;
-    font-size: 0.85rem;
-    color: var(--muted);
-    line-height: 1.6;
-    margin-bottom: 24px;
-  }
+/* Loading overlay */
+.loading-overlay { position: fixed; inset: 0; background: rgba(13,15,20,0.8); display: none; align-items: center; justify-content: center; z-index: 999; flex-direction: column; gap: 16px; }
+.loading-overlay.show { display: flex; }
+.spinner { width: 28px; height: 28px; border: 3px solid rgba(240,180,41,0.3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay p { color: var(--muted); font-size: 0.9rem; }
 
-  /* Error */
-  .error-msg {
-    background: rgba(232, 67, 26, 0.1);
-    border: 1.5px solid rgba(232, 67, 26, 0.4);
-    border-radius: var(--radius);
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    color: #f87171;
-    margin-bottom: 16px;
-    display: none;
-  }
-  .error-msg.show { display: block; }
-
-  /* Loading */
-  .spinner {
-    width: 24px; height: 24px;
-    border: 3px solid rgba(240,180,41,0.3);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin: 0 auto;
-    display: none;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-overlay {
-    position: fixed; inset: 0;
-    background: rgba(13,15,20,0.8);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 999;
-    flex-direction: column;
-    gap: 16px;
-  }
-  .loading-overlay.show { display: flex; }
-  .loading-overlay p { color: var(--muted); font-size: 0.9rem; }
+/* Steps bar */
+.steps-bar { display: flex; align-items: center; margin: 28px auto 0; max-width: 320px; width: calc(100% - 40px); }
+.step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 0.8rem; color: var(--muted); transition: all 0.3s; flex-shrink: 0; }
+.step-dot.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.step-dot.done { background: var(--green); border-color: var(--green); color: #fff; }
+.step-line { flex: 1; height: 2px; background: var(--border); }
+.step-line.done { background: var(--green); }
 </style>
 </head>
 <body>
 
 <div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner" style="display:block"></div>
-  <p>Checking you in…</p>
+  <div class="spinner"></div>
+  <p id="loadingMsg">Please wait...</p>
 </div>
 
 <div class="kiosk-wrap">
@@ -386,309 +130,409 @@
     <div class="subtitle">Transporter Self Check-In</div>
   </div>
 
-  <!-- Steps indicator -->
-  <div class="steps-bar" id="stepsBar">
-    <div class="step-dot active" id="step-dot-1">1</div>
-    <div class="step-line" id="step-line-1"></div>
-    <div class="step-dot" id="step-dot-2">2</div>
-    <div class="step-line" id="step-line-2"></div>
-    <div class="step-dot" id="step-dot-3">3</div>
-    <div class="step-line" id="step-line-3"></div>
-    <div class="step-dot" id="step-dot-4">4</div>
-  </div>
-
   <div class="form-container">
 
-    <!-- STEP 1: Driver Info -->
-    <div class="step-screen active" id="screen-1">
-      <p class="step-title">Driver Info</p>
-      <p class="step-desc">Enter your personal and carrier information to get started.</p>
-
-      <div class="error-msg" id="err1"></div>
-
-      <div class="field">
-        <label>Driver Name <span class="req">*</span></label>
-        <input type="text" id="driverName" placeholder="Your full name" autocomplete="name">
+    <!-- WELCOME screen -->
+    <div class="screen active" id="screen-welcome">
+      <p class="screen-title">Welcome</p>
+      <p class="screen-desc">How would you like to check in today?</p>
+      <div class="welcome-options">
+        <button type="button" class="option-btn" onclick="showScreen('screen-login')">
+          <span class="ob-icon">🔑</span>
+          <span class="ob-text">
+            <div class="ob-title">Returning Driver</div>
+            <div class="ob-sub">Sign in with your username and password</div>
+          </span>
+        </button>
+        <button type="button" class="option-btn" onclick="showScreen('screen-register')">
+          <span class="ob-icon">✏️</span>
+          <span class="ob-text">
+            <div class="ob-title">New Driver</div>
+            <div class="ob-sub">Create a free account — takes 30 seconds</div>
+          </span>
+        </button>
+        <button type="button" class="option-btn guest-btn" onclick="startGuest()">
+          <span class="ob-icon">👤</span>
+          <span class="ob-text">
+            <div class="ob-title">Continue as Guest</div>
+            <div class="ob-sub">One-time visit — no account needed</div>
+          </span>
+        </button>
       </div>
-      <div class="field">
-        <label>Driver Phone <span class="req">*</span></label>
-        <input type="tel" id="driverPhone" placeholder="(555) 000-0000" autocomplete="tel">
-      </div>
-      <div class="divider"></div>
-      <div class="field">
-        <label>Carrier / Company <span class="req">*</span></label>
-        <input type="text" id="carrier" placeholder="Transport company name">
-      </div>
-      <div class="field">
-        <label>Carrier Phone</label>
-        <input type="tel" id="carrierPhone" placeholder="(555) 000-0000">
-      </div>
-      <button class="btn-primary" onclick="goStep2()">Continue →</button>
     </div>
 
-    <!-- STEP 2: Load Details -->
-    <div class="step-screen" id="screen-2">
-      <p class="step-title">Load Details</p>
-      <p class="step-desc">Tell us about the vehicles you're dropping off or picking up today.</p>
-
+    <!-- LOGIN screen -->
+    <div class="screen" id="screen-login">
+      <p class="screen-title">Sign In</p>
+      <p class="screen-desc">Enter your username and password to continue.</p>
+      <div class="error-msg" id="login-err"></div>
       <div class="field">
-        <label>Drop Off (vehicles)</label>
-        <div class="counter-wrap">
-          <button class="counter-btn" onclick="adjustCount('dropOff', -1)">−</button>
-          <span class="counter-val" id="dropOff-val">0</span>
-          <button class="counter-btn" onclick="adjustCount('dropOff', 1)">+</button>
-        </div>
+        <label>Username <span class="req">*</span></label>
+        <input type="text" id="login-username" placeholder="Your username" autocomplete="username">
       </div>
-
       <div class="field">
-        <label>Pickup (vehicles)</label>
-        <div class="counter-wrap">
-          <button class="counter-btn" onclick="adjustCount('pickup', -1)">−</button>
-          <span class="counter-val" id="pickup-val">0</span>
-          <button class="counter-btn" onclick="adjustCount('pickup', 1)">+</button>
-        </div>
+        <label>Password <span class="req">*</span></label>
+        <input type="password" id="login-password" placeholder="Your password" autocomplete="current-password">
       </div>
-
-      <div class="field" style="margin-top:20px">
-        <label>Type of Vehicles <span class="req">*</span></label>
-        <div class="vehicle-types">
-          <div class="vtype-pill"><input type="checkbox" id="vt1" value="Wholesale"><label for="vt1">Wholesale</label></div>
-          <div class="vtype-pill"><input type="checkbox" id="vt2" value="RAW"><label for="vt2">RAW</label></div>
-          <div class="vtype-pill"><input type="checkbox" id="vt3" value="Repo"><label for="vt3">Repo</label></div>
-          <div class="vtype-pill"><input type="checkbox" id="vt4" value="No Runner"><label for="vt4">No Runner</label></div>
-          <div class="vtype-pill"><input type="checkbox" id="vt5" value="Other"><label for="vt5">Other</label></div>
-        </div>
-      </div>
-
-      <div class="field" style="margin-top:20px">
-        <label>Comments / Notes</label>
-        <textarea id="comments" placeholder="Any special instructions or notes…"></textarea>
-      </div>
-
-      <div class="error-msg" id="err2"></div>
-      <button class="btn-primary" onclick="goStep3()">Review →</button>
-      <button class="btn-secondary" onclick="goStep(1)">← Back</button>
+      <button type="button" class="btn-primary" onclick="doLogin()">Sign In →</button>
+      <button type="button" class="btn-secondary" onclick="showScreen('screen-welcome')">← Back</button>
     </div>
 
-    <!-- STEP 3: Review -->
-    <div class="step-screen" id="screen-3">
-      <p class="step-title">Review & Confirm</p>
-      <p class="step-desc">Please verify your information before submitting.</p>
-
-      <div class="confirm-card" id="reviewCard">
-        <!-- filled dynamically -->
+    <!-- REGISTER screen -->
+    <div class="screen" id="screen-register">
+      <p class="screen-title">Create Account</p>
+      <p class="screen-desc">Register once and your details will be pre-filled on future visits.</p>
+      <div class="error-msg" id="reg-err"></div>
+      <div class="field">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" id="reg-name" placeholder="Your full name" autocomplete="name">
       </div>
-
-      <button class="btn-primary" onclick="submitCheckIn()">✓ Check In Now</button>
-      <button class="btn-secondary" onclick="goStep(2)">← Edit Details</button>
+      <div class="field-row">
+        <div class="field">
+          <label>Username <span class="req">*</span></label>
+          <input type="text" id="reg-username" placeholder="Choose a username">
+        </div>
+        <div class="field">
+          <label>Password <span class="req">*</span></label>
+          <input type="password" id="reg-password" placeholder="Min. 6 characters">
+        </div>
+      </div>
+      <div class="field">
+        <label>Phone Number</label>
+        <input type="tel" id="reg-phone" placeholder="(555) 000-0000" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label>Carrier / Company</label>
+        <input type="text" id="reg-carrier" placeholder="Transport company name">
+      </div>
+      <button type="button" class="btn-primary" onclick="doRegister()">Create Account →</button>
+      <button type="button" class="btn-secondary" onclick="showScreen('screen-welcome')">← Back</button>
     </div>
 
-    <!-- STEP 4: Success -->
-    <div class="step-screen" id="screen-4">
-      <div class="success-screen">
+    <!-- CHECKIN FORM screen -->
+    <div class="screen" id="screen-checkin">
+      <div class="steps-bar">
+        <div class="step-dot active" id="sd1">1</div>
+        <div class="step-line" id="sl1"></div>
+        <div class="step-dot" id="sd2">2</div>
+        <div class="step-line" id="sl2"></div>
+        <div class="step-dot" id="sd3">3</div>
+      </div>
+      <div style="margin-top:22px"></div>
+
+      <!-- Step 1: Confirm details -->
+      <div id="ci-step1" class="ci-step">
+        <p class="screen-title">Confirm Your Details</p>
+        <p class="screen-desc">Review and update your information if needed.</p>
+        <div class="field">
+          <label>Full Name <span class="req">*</span></label>
+          <input type="text" id="ci-name" placeholder="Your full name">
+        </div>
+        <div class="field">
+          <label>Phone Number <span class="req">*</span></label>
+          <input type="tel" id="ci-phone" placeholder="(555) 000-0000">
+        </div>
+        <div class="field">
+          <label>Carrier / Company <span class="req">*</span></label>
+          <input type="text" id="ci-carrier" placeholder="Transport company name">
+        </div>
+        <div class="error-msg" id="ci-err1"></div>
+        <button type="button" class="btn-primary" onclick="ciNext(1)">Continue →</button>
+        <button type="button" class="btn-secondary" onclick="showScreen('screen-welcome')">← Cancel</button>
+      </div>
+
+      <!-- Step 2: Load details -->
+      <div id="ci-step2" class="ci-step" style="display:none">
+        <p class="screen-title">Load Details</p>
+        <p class="screen-desc">Tell us about the vehicles you are dropping off or picking up.</p>
+        <div class="field">
+          <label>Drop Off (vehicles)</label>
+          <div class="counter-wrap">
+            <button type="button" class="counter-btn" onclick="adjustCount('dropOff',-1)">−</button>
+            <span class="counter-val" id="dropOff-val">0</span>
+            <button type="button" class="counter-btn" onclick="adjustCount('dropOff',1)">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Pickup (vehicles)</label>
+          <div class="counter-wrap">
+            <button type="button" class="counter-btn" onclick="adjustCount('pickup',-1)">−</button>
+            <span class="counter-val" id="pickup-val">0</span>
+            <button type="button" class="counter-btn" onclick="adjustCount('pickup',1)">+</button>
+          </div>
+        </div>
+        <div class="field" style="margin-top:20px">
+          <label>Type of Vehicles <span class="req">*</span></label>
+          <div class="vehicle-types">
+            <div class="vtype-pill"><input type="checkbox" id="vt1" value="Wholesale"><label for="vt1">Wholesale</label></div>
+            <div class="vtype-pill"><input type="checkbox" id="vt2" value="RAW"><label for="vt2">RAW</label></div>
+            <div class="vtype-pill"><input type="checkbox" id="vt3" value="Repo"><label for="vt3">Repo</label></div>
+            <div class="vtype-pill"><input type="checkbox" id="vt4" value="No Runner"><label for="vt4">No Runner</label></div>
+            <div class="vtype-pill"><input type="checkbox" id="vt5" value="Other"><label for="vt5">Other</label></div>
+          </div>
+        </div>
+        <div class="field" style="margin-top:20px">
+          <label>Comments / Notes</label>
+          <textarea id="ci-comments" placeholder="Any special instructions..."></textarea>
+        </div>
+        <div class="error-msg" id="ci-err2"></div>
+        <button type="button" class="btn-primary" onclick="ciNext(2)">Review →</button>
+        <button type="button" class="btn-secondary" onclick="ciBack(2)">← Back</button>
+      </div>
+
+      <!-- Step 3: Confirm & submit -->
+      <div id="ci-step3" class="ci-step" style="display:none">
+        <p class="screen-title">Confirm & Check In</p>
+        <p class="screen-desc">Please verify your information before submitting.</p>
+        <div id="ci-review" style="background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px;font-size:0.88rem;line-height:2"></div>
+        <button type="button" class="btn-primary" onclick="submitCheckIn()">✓ Check In Now</button>
+        <button type="button" class="btn-secondary" onclick="ciBack(3)">← Edit Details</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS screen -->
+    <div class="screen" id="screen-success">
+      <div style="text-align:center;padding:20px 0">
         <div class="success-badge">✓</div>
-        <p class="step-title">You're Checked In!</p>
-        <p class="step-desc">Please wait for staff to call your queue number.</p>
-
-        <div class="queue-number" id="queueNum">—</div>
+        <p class="screen-title" style="text-align:center">You're Checked In!</p>
+        <p class="screen-desc" style="text-align:center">Please wait for staff to call your number.</p>
+        <div class="queue-number" id="success-queueNum">—</div>
         <div class="queue-label">Your Queue Position</div>
-
         <div class="wait-badge">
           <span class="dot"></span>
-          <span id="waitMsg">Estimated wait: — min</span>
+          <span id="success-waitMsg">Estimated wait: — min</span>
         </div>
-
-        <div class="info-box">
-          📋 Please stay near your vehicle and listen for staff announcements. Your <strong>Time In</strong> has been recorded automatically.
-        </div>
-
-        <button class="btn-primary" onclick="resetForm()">Check In Another Driver</button>
+        <div class="info-msg">📋 Stay near your vehicle and listen for staff announcements. Your Time In has been recorded.</div>
+        <button type="button" class="btn-primary" onclick="resetKiosk()">Check In Another Driver</button>
       </div>
     </div>
 
-  </div><!-- /form-container -->
-</div><!-- /kiosk-wrap -->
+  </div>
+</div>
 
 <script>
-  // ========== CONFIG ==========
-  // Paste your Apps Script Web App URL here — works on all devices automatically
-  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxO7-rqLOruCVMI6PLvmdzbQe-N6idW1kZKii3ApAluNmlWVj66jqNuRpwyoJZYvBhTlg/exec";
+// ========== CONFIG ==========
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCLcnaj7hpBmsSLOZnfaBV-rJKsEqYehOgIbILSr3jQwlYnW2p7v-HYB2gD3tgWxy_w/exec";
 
-  // ========== STATE ==========
-  let counts = { dropOff: 0, pickup: 0 };
-  let currentStep = 1;
+// ========== STATE ==========
+let currentUser = null; // { username, displayName, phone, carrier, group } or null for guest
+let isGuest = false;
+let counts = { dropOff: 0, pickup: 0 };
+let ciStep = 1;
 
-  // ========== NAVIGATION ==========
-  function goStep(n) {
-    document.getElementById(`screen-${currentStep}`).classList.remove('active');
-    document.getElementById(`step-dot-${currentStep}`).classList.remove('active');
-    document.getElementById(`step-dot-${currentStep}`).classList.add('done');
+// ========== NAVIGATION ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-    if (n < currentStep) {
-      // Going back - un-done current
-      document.getElementById(`step-dot-${currentStep}`).classList.remove('done');
-    }
+function setLoading(show, msg) {
+  const o = document.getElementById('loadingOverlay');
+  document.getElementById('loadingMsg').textContent = msg || 'Please wait...';
+  o.classList.toggle('show', show);
+}
 
-    currentStep = n;
-    document.getElementById(`screen-${n}`).classList.add('active');
-    document.getElementById(`step-dot-${n}`).classList.remove('done');
-    document.getElementById(`step-dot-${n}`).classList.add('active');
-
-    // Update lines
-    for (let i = 1; i <= 3; i++) {
-      const line = document.getElementById(`step-line-${i}`);
-      if (i < n) line.classList.add('done');
-      else line.classList.remove('done');
-    }
-
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+// ========== AUTH ==========
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const err = document.getElementById('login-err');
+  if (!username || !password) { err.textContent = 'Please enter your username and password.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  setLoading(true, 'Signing in...');
+  try {
+    const res = await callScript({ action: 'login', username, password });
+    setLoading(false);
+    if (res.error) { err.textContent = res.error; err.classList.add('show'); return; }
+    currentUser = res.user;
+    isGuest = false;
+    startCheckIn();
+  } catch(e) {
+    setLoading(false);
+    err.textContent = 'Connection error. Please try again.';
+    err.classList.add('show');
   }
+}
 
-  function goStep2() {
-    const name = document.getElementById('driverName').value.trim();
-    const phone = document.getElementById('driverPhone').value.trim();
-    const carrier = document.getElementById('carrier').value.trim();
-    const err = document.getElementById('err1');
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const username = document.getElementById('reg-username').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const phone = document.getElementById('reg-phone').value.trim();
+  const carrier = document.getElementById('reg-carrier').value.trim();
+  const err = document.getElementById('reg-err');
 
-    if (!name || !phone || !carrier) {
-      err.textContent = 'Please fill in all required fields.';
-      err.classList.add('show');
-      return;
-    }
+  if (!name || !username || !password) { err.textContent = 'Name, username and password are required.'; err.classList.add('show'); return; }
+  if (password.length < 6) { err.textContent = 'Password must be at least 6 characters.'; err.classList.add('show'); return; }
+  err.classList.remove('show');
+  setLoading(true, 'Creating account...');
+  try {
+    const res = await callScript({ action: 'register', displayName: name, username, password, phone, carrier, group: 'Driver' });
+    setLoading(false);
+    if (res.error) { err.textContent = res.error; err.classList.add('show'); return; }
+    currentUser = { username, displayName: name, phone, carrier, group: 'Driver' };
+    isGuest = false;
+    startCheckIn();
+  } catch(e) {
+    setLoading(false);
+    err.textContent = 'Connection error. Please try again.';
+    err.classList.add('show');
+  }
+}
+
+function startGuest() {
+  currentUser = null;
+  isGuest = true;
+  startCheckIn();
+}
+
+// ========== CHECK-IN FLOW ==========
+function startCheckIn() {
+  // Pre-fill from user profile
+  document.getElementById('ci-name').value    = currentUser ? currentUser.displayName : '';
+  document.getElementById('ci-phone').value   = currentUser ? currentUser.phone || '' : '';
+  document.getElementById('ci-carrier').value = currentUser ? currentUser.carrier || '' : '';
+  // Reset counters and form
+  counts = { dropOff: 0, pickup: 0 };
+  document.getElementById('dropOff-val').textContent = '0';
+  document.getElementById('pickup-val').textContent  = '0';
+  document.getElementById('ci-comments').value = '';
+  ['vt1','vt2','vt3','vt4','vt5'].forEach(id => document.getElementById(id).checked = false);
+  ciStep = 1;
+  showCiStep(1);
+  showScreen('screen-checkin');
+}
+
+function showCiStep(n) {
+  ciStep = n;
+  document.querySelectorAll('.ci-step').forEach(s => s.style.display = 'none');
+  document.getElementById('ci-step' + n).style.display = 'block';
+  // Update step dots
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById('sd' + i);
+    dot.className = 'step-dot' + (i === n ? ' active' : i < n ? ' done' : '');
+    if (i < 3) document.getElementById('sl' + i).className = 'step-line' + (i < n ? ' done' : '');
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function ciNext(step) {
+  if (step === 1) {
+    const name    = document.getElementById('ci-name').value.trim();
+    const phone   = document.getElementById('ci-phone').value.trim();
+    const carrier = document.getElementById('ci-carrier').value.trim();
+    const err = document.getElementById('ci-err1');
+    if (!name || !phone || !carrier) { err.textContent = 'Please fill in all required fields.'; err.classList.add('show'); return; }
     err.classList.remove('show');
-    goStep(2);
-  }
-
-  function goStep3() {
+    showCiStep(2);
+  } else if (step === 2) {
     const types = getSelectedTypes();
-    const err = document.getElementById('err2');
-    if (counts.dropOff === 0 && counts.pickup === 0) {
-      err.textContent = 'Please enter at least one Drop Off or Pickup vehicle.';
-      err.classList.add('show');
-      return;
-    }
-    if (types.length === 0) {
-      err.textContent = 'Please select at least one vehicle type.';
-      err.classList.add('show');
-      return;
-    }
+    const err = document.getElementById('ci-err2');
+    if (counts.dropOff === 0 && counts.pickup === 0) { err.textContent = 'Please enter at least one Drop Off or Pickup vehicle.'; err.classList.add('show'); return; }
+    if (types.length === 0) { err.textContent = 'Please select at least one vehicle type.'; err.classList.add('show'); return; }
     err.classList.remove('show');
     buildReview();
-    goStep(3);
+    showCiStep(3);
   }
+}
 
-  // ========== HELPERS ==========
-  function adjustCount(field, delta) {
-    counts[field] = Math.max(0, counts[field] + delta);
-    document.getElementById(`${field}-val`).textContent = counts[field];
+function ciBack(step) {
+  showCiStep(step - 1);
+}
+
+function adjustCount(field, delta) {
+  counts[field] = Math.max(0, counts[field] + delta);
+  document.getElementById(field + '-val').textContent = counts[field];
+}
+
+function getSelectedTypes() {
+  return ['vt1','vt2','vt3','vt4','vt5'].filter(id => document.getElementById(id).checked).map(id => document.getElementById(id).value);
+}
+
+function buildReview() {
+  const rows = [
+    ['Name',     document.getElementById('ci-name').value],
+    ['Phone',    document.getElementById('ci-phone').value],
+    ['Carrier',  document.getElementById('ci-carrier').value],
+    ['Drop Off', counts.dropOff],
+    ['Pickup',   counts.pickup],
+    ['Types',    getSelectedTypes().join(', ')],
+    ['Comments', document.getElementById('ci-comments').value || '—'],
+    ['Account',  isGuest ? 'Guest' : (currentUser ? currentUser.displayName : '—')],
+  ];
+  document.getElementById('ci-review').innerHTML = rows.map(r =>
+    '<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:4px 0">' +
+    '<span style="color:var(--muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em">' + r[0] + '</span>' +
+    '<span style="font-weight:500">' + r[1] + '</span></div>'
+  ).join('');
+}
+
+async function submitCheckIn() {
+  setLoading(true, 'Checking you in...');
+  const signedInBy = isGuest ? 'Guest' : (currentUser ? currentUser.displayName : 'Self');
+  const payload = {
+    action: 'checkIn',
+    'Driver Name':  document.getElementById('ci-name').value.trim(),
+    'Driver Phone': document.getElementById('ci-phone').value.trim(),
+    'Carrier':      document.getElementById('ci-carrier').value.trim(),
+    'Drop Off':     counts.dropOff,
+    'Pickup':       counts.pickup,
+    'Vehicle Types':getSelectedTypes().join(', '),
+    'Comments':     document.getElementById('ci-comments').value.trim(),
+    'Signed In By': signedInBy
+  };
+  try {
+    const res = await callScript(payload);
+    setLoading(false);
+    document.getElementById('success-queueNum').textContent = res.queuePosition || '?';
+    document.getElementById('success-waitMsg').textContent = res.estWait > 0
+      ? 'Estimated wait: ' + res.estWait + ' min'
+      : 'You are next in queue';
+    showScreen('screen-success');
+  } catch(e) {
+    setLoading(false);
+    alert('Check-in failed. Please see a staff member.\n\n' + e.message);
   }
+}
 
-  function getSelectedTypes() {
-    return ['vt1','vt2','vt3','vt4','vt5']
-      .filter(id => document.getElementById(id).checked)
-      .map(id => document.getElementById(id).value);
-  }
+// ========== HELPERS ==========
+async function callScript(payload) {
+  const params = new URLSearchParams({ data: JSON.stringify(payload) });
+  const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString());
+  const result = await res.json();
+  if (result.error) throw new Error(result.error);
+  return result;
+}
 
-  function formatPhone(val) {
-    const d = val.replace(/\D/g,'');
-    if (d.length >= 10) return `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6,10)}`;
-    return val;
-  }
+function resetKiosk() {
+  currentUser = null;
+  isGuest = false;
+  document.getElementById('login-username').value = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('reg-name').value = '';
+  document.getElementById('reg-username').value = '';
+  document.getElementById('reg-password').value = '';
+  document.getElementById('reg-phone').value = '';
+  document.getElementById('reg-carrier').value = '';
+  showScreen('screen-welcome');
+}
 
-  function buildReview() {
-    const rows = [
-      { lbl: 'Driver', val: document.getElementById('driverName').value },
-      { lbl: 'Driver Phone', val: formatPhone(document.getElementById('driverPhone').value) },
-      { lbl: 'Carrier', val: document.getElementById('carrier').value },
-      { lbl: 'Carrier Phone', val: document.getElementById('carrierPhone').value || '—' },
-      { lbl: 'Drop Off', val: counts.dropOff },
-      { lbl: 'Pickup', val: counts.pickup },
-      { lbl: 'Vehicle Types', val: getSelectedTypes().join(', ') },
-      { lbl: 'Comments', val: document.getElementById('comments').value || '—' },
-    ];
-    document.getElementById('reviewCard').innerHTML = rows.map(r =>
-      `<div class="row"><span class="lbl">${r.lbl}</span><span class="val">${r.val}</span></div>`
-    ).join('');
-  }
-
-  // ========== SUBMIT ==========
-  async function submitCheckIn() {
-    const overlay = document.getElementById('loadingOverlay');
-    overlay.classList.add('show');
-
-    const payload = {
-      action: "checkIn",
-      "Driver Name": document.getElementById('driverName').value.trim(),
-      "Driver Phone": document.getElementById('driverPhone').value.trim(),
-      "Carrier": document.getElementById('carrier').value.trim(),
-      "Carrier Phone": document.getElementById('carrierPhone').value.trim(),
-      "Drop Off": counts.dropOff,
-      "Pickup": counts.pickup,
-      "Vehicle Types": getSelectedTypes().join(', '),
-      "Comments": document.getElementById('comments').value.trim(),
-      "Signed In By": "Self"
-    };
-
-    try {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // With no-cors we can't read response — assume success
-      // In real deployment, use cors-enabled Apps Script
-      overlay.classList.remove('show');
-
-      // Show success
-      document.getElementById('queueNum').textContent = '?';
-      document.getElementById('waitMsg').textContent = 'Please check with staff for your queue number';
-      goStep(4);
-
-    } catch (err) {
-      overlay.classList.remove('show');
-      alert("Check-in failed. Please see a staff member for assistance.\n\nError: " + err.message);
-    }
-  }
-
-  // ========== RESET ==========
-  function resetForm() {
-    document.getElementById('driverName').value = '';
-    document.getElementById('driverPhone').value = '';
-    document.getElementById('carrier').value = '';
-    document.getElementById('carrierPhone').value = '';
-    document.getElementById('comments').value = '';
-    counts = { dropOff: 0, pickup: 0 };
-    document.getElementById('dropOff-val').textContent = '0';
-    document.getElementById('pickup-val').textContent = '0';
-    ['vt1','vt2','vt3','vt4','vt5'].forEach(id => document.getElementById(id).checked = false);
-
-    // Reset step indicators
-    for (let i = 1; i <= 4; i++) {
-      const dot = document.getElementById(`step-dot-${i}`);
-      dot.classList.remove('active', 'done');
-    }
-    for (let i = 1; i <= 3; i++) {
-      document.getElementById(`step-line-${i}`).classList.remove('done');
-    }
-    document.getElementById(`screen-${currentStep}`).classList.remove('active');
-    currentStep = 1;
-    document.getElementById('screen-1').classList.add('active');
-    document.getElementById('step-dot-1').classList.add('active');
-    window.scrollTo({ top: 0 });
-  }
-
-  // Phone formatting
-  ['driverPhone','carrierPhone'].forEach(id => {
-    document.getElementById(id).addEventListener('input', function() {
-      const d = this.value.replace(/\D/g,'').slice(0,10);
-      if (d.length > 6) this.value = `(${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
-      else if (d.length > 3) this.value = `(${d.slice(0,3)}) ${d.slice(3)}`;
-      else if (d.length > 0) this.value = `(${d}`;
-      else this.value = '';
-    });
+// Phone formatting
+['login-username','reg-phone','ci-phone'].forEach(id => {
+  const el = document.getElementById(id);
+  if (!el || el.type !== 'tel') return;
+  el.addEventListener('input', function() {
+    const d = this.value.replace(/\D/g,'').slice(0,10);
+    if (d.length > 6) this.value = '(' + d.slice(0,3) + ') ' + d.slice(3,6) + '-' + d.slice(6);
+    else if (d.length > 3) this.value = '(' + d.slice(0,3) + ') ' + d.slice(3);
+    else if (d.length > 0) this.value = '(' + d;
+    else this.value = '';
   });
+});
+
+// Enter key on login fields
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 </script>
 </body>
 </html>
