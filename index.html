@@ -2065,8 +2065,7 @@ async function callScript(payload) {
   const params = new URLSearchParams({ data: JSON.stringify(payload) });
   const res = await fetch(`${APPS_SCRIPT_URL}?${params.toString()}`);
   const result = await res.json();
-  if (result.error) throw new Error(result.error);
-  return result;
+  return result; // Let callers handle result.error themselves
 }
 
 async function submitCheckin() {
@@ -2099,6 +2098,7 @@ async function submitCheckin() {
       "Comments": document.getElementById('ci-comments').value.trim(),
       "Signed In By": signedBy
     });
+    if (data.error) throw new Error(data.error);
     closeModal('checkinModal');
     showToast(`✓ ${name} checked in — Queue #${data.queuePosition}`, 'success');
     loadRecords();
@@ -2114,11 +2114,12 @@ async function submitCheckout() {
     return;
   }
   try {
-    await callScript({
+    const res = await callScript({
       action: "checkOut",
       "rowId": selectedRowId,
       "Signed Out By": signedBy
     });
+    if (res.error) throw new Error(res.error);
     closeModal('checkoutModal');
     showToast('✓ Driver checked out successfully', 'success');
     loadRecords();
@@ -2129,7 +2130,7 @@ async function submitCheckout() {
 
 async function submitEdit() {
   try {
-    await callScript({
+    const res = await callScript({
       action: "updateRecord",
       "rowId": selectedRowId,
       "Driver Name": document.getElementById('ed-driverName').value.trim(),
@@ -2149,6 +2150,7 @@ async function submitEdit() {
       "Signed In By": document.getElementById('ed-signedInBy').value.trim(),
       "Signed Out By": document.getElementById('ed-signedOutBy').value.trim()
     });
+    if (res.error) throw new Error(res.error);
     closeModal('editModal');
     showToast('✓ Record updated', 'success');
     loadRecords();
@@ -2159,14 +2161,13 @@ async function submitEdit() {
 
 async function setStatus(rowId, status) {
   try {
-    await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
-    // Update local record immediately so card view reflects change without waiting for reload
+    const res = await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
+    if (res.error) throw new Error(res.error);
     const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
     if (idx !== -1) allRecords[idx]['Status'] = status;
     filterRecords();
     updateStats();
     showToast(`✓ Status updated to ${status}`, 'success');
-    // Then do a full reload in background to sync any other changes
     loadRecords();
   } catch (err) {
     showToast(`✗ Status update failed: ${err.message}`, 'error');
