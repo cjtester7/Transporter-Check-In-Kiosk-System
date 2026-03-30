@@ -1837,9 +1837,10 @@ async function submitEdit() {
 }
 
 async function setStatus(rowId, status) {
+  // Close the card modal immediately on click — don't wait for network
+  closeCardModal();
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
-    closeCardModal();
     const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
     if (idx !== -1) allRecords[idx]['Status'] = status;
     filterRecords();
