@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>CarsRUs — Transporter Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -788,7 +788,18 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 }
 .login-btn:hover { opacity: 0.88; }
 
-/* Hamburger button */
+/* ===== FILTER BAR ===== */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ===== HAMBURGER ===== */
 .hamburger {
   display: none;
   width: 38px; height: 38px;
@@ -796,15 +807,13 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
   border: 1.5px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  font-size: 1.2rem;
+  font-size: 1.15rem;
   cursor: pointer;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Sidebar overlay for mobile */
+/* ===== SIDEBAR OVERLAY ===== */
 .sidebar-overlay {
   display: none;
   position: fixed; inset: 0;
@@ -822,51 +831,79 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
     z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
   }
   .sidebar.open { transform: translateX(0); }
-  .hamburger { display: flex !important; }
+  .hamburger { display: flex; align-items: center; justify-content: center; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ===== MOBILE (≤600px) ===== */
 @media (max-width: 600px) {
-  /* Stats hidden */
+  /* Viewport */
+  html { -webkit-text-size-adjust: 100%; }
+
+  /* Hide stats */
   .stats-row { display: none !important; }
 
-  /* Topbar stacks search on its own line */
+  /* Hide CSV */
+  .btn-csv { display: none !important; }
+
+  /* Hide list/card toggle — card view only on mobile */
+  .view-toggle { display: none !important; }
+
+  /* Topbar — search on own line */
   .topbar {
     flex-wrap: wrap;
-    padding: 10px 12px;
+    padding: 8px 12px;
     gap: 8px;
+    align-items: center;
+  }
+  .topbar-right {
+    margin-left: auto;
+    gap: 6px;
+    flex-shrink: 0;
   }
   .search-wrap {
-    order: 2;
+    order: 10;
     width: 100%;
     max-width: 100%;
   }
-  .topbar-right {
-    order: 1;
-    margin-left: auto;
-    gap: 6px;
+
+  /* Filter bar sticky on mobile */
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    padding: 8px 12px;
+    gap: 5px;
   }
-
-  /* Hide CSV button on mobile */
-  .btn-csv { display: none !important; }
-
-  /* Compact buttons */
-  .btn-checkin { padding: 8px 12px; font-size: 0.82rem; }
-  .btn-icon { padding: 7px 10px; font-size: 0.85rem; }
+  .filter-tab {
+    font-size: 0.72rem;
+    padding: 5px 10px;
+    flex: 1;
+    text-align: center;
+  }
 
   /* Cards */
   .cards-grid { grid-template-columns: 1fr; }
-
-  /* Content padding */
   .content { padding: 10px; }
 
-  /* Filter tabs wrap */
-  .filter-tabs { flex-wrap: wrap; gap: 4px; }
-  .filter-tab { font-size: 0.72rem; padding: 4px 10px; }
+  /* Modals — tighter on mobile */
+  .modal { max-height: 85vh; overflow-y: auto; }
+  .modal-body { padding: 14px 16px; }
+  .modal-header { padding: 14px 16px; }
+  .modal-footer { padding: 12px 16px; }
+  .m-field { margin-bottom: 10px; }
+  .m-field input, .m-field select, .m-field textarea {
+    padding: 10px 12px;
+    font-size: 0.88rem;
+  }
+  .m-row { grid-template-columns: 1fr; gap: 0; }
+
+  /* Buttons */
+  .btn-checkin { padding: 8px 12px; font-size: 0.82rem; }
+  .btn-icon { padding: 7px 10px; font-size: 0.85rem; }
 }
 </style>
 </head>
@@ -918,6 +955,9 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
   </div>
 </div>
 
+<!-- Carrier autocomplete datalist -->
+<datalist id="carrierList"></datalist>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -944,7 +984,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <div class="m-row">
         <div class="m-field">
           <label>Carrier Name <span class="req">*</span></label>
-          <input type="text" id="ci-carrier" placeholder="Company name">
+          <input type="text" id="ci-carrier" placeholder="Company name" list="carrierList">
         </div>
         <div class="m-field">
           <label>Carrier Phone</label>
@@ -1053,7 +1093,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <div class="m-row">
         <div class="m-field">
           <label>Carrier</label>
-          <input type="text" id="ed-carrier" placeholder="Company name">
+          <input type="text" id="ed-carrier" placeholder="Company name" list="carrierList">
         </div>
         <div class="m-field">
           <label>Carrier Phone</label>
@@ -1170,7 +1210,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
   </div>
 </div>
 
-<!-- Sidebar overlay for mobile -->
+<!-- Sidebar overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <!-- ===== APP ===== -->
@@ -1232,7 +1272,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
     </div>
     <!-- Topbar -->
     <div class="topbar">
-      <button type="button" class="hamburger" onclick="toggleSidebar()" title="Menu">☰</button>
+      <button type="button" class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">☰</button>
       <div class="search-wrap">
         <span class="icon">🔍</span>
         <input class="search-input" type="text" id="searchInput" placeholder="Search drivers, carriers…" oninput="filterRecords()">
@@ -1246,6 +1286,14 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
         </div>
         <button class="btn-checkin" onclick="openCheckinModal()">+ Check In</button>
       </div>
+    </div>
+
+    <!-- Sticky filter bar (always visible) -->
+    <div class="filter-bar" id="filterBar">
+      <button class="filter-tab active" onclick="setFilterTab('All')">All</button>
+      <button class="filter-tab" onclick="setFilterTab('Waiting')">Waiting</button>
+      <button class="filter-tab" onclick="setFilterTab('In Progress')">In Progress</button>
+      <button class="filter-tab" onclick="setFilterTab('Completed')">Completed</button>
     </div>
 
     <!-- Content -->
@@ -1277,12 +1325,6 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <!-- Section header -->
       <div class="section-header">
         <div class="section-title">Transporter Log</div>
-        <div class="filter-tabs">
-          <button class="filter-tab active" onclick="setFilterTab('All')">All</button>
-          <button class="filter-tab" onclick="setFilterTab('Waiting')">Waiting</button>
-          <button class="filter-tab" onclick="setFilterTab('In Progress')">In Progress</button>
-          <button class="filter-tab" onclick="setFilterTab('Completed')">Completed</button>
-        </div>
       </div>
 
       <!-- LIST VIEW -->
@@ -1295,7 +1337,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
                 <th onclick="sortBy('Driver Name', this)">Driver <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Carrier', this)">Carrier <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Lane', this)">Lane <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Check-In Timestamp', this)">Check In <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Time In', this)">Time In <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Time Out', this)">Time Out <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Drop Off', this)">Drop <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Pickup', this)">Pick <span class="sort-arrow">↕</span></th>
@@ -1387,14 +1429,44 @@ function applyUserSession() {
   document.getElementById('ci-signedInBy').value = currentUser.displayName;
 }
 
+// ========== SIDEBAR (MOBILE) ==========
+function toggleSidebar() {
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// ========== CARRIER AUTOCOMPLETE ==========
+function updateCarrierList() {
+  const carriers = [...new Set(
+    allRecords
+      .map(r => (r['Carrier'] || '').trim())
+      .filter(c => c.length > 0)
+  )].sort();
+  const dl = document.getElementById('carrierList');
+  if (dl) dl.innerHTML = carriers.map(c => '<option value="' + esc(c) + '">').join('');
+}
+
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
-  // Start live clock
   updateClock();
   setInterval(updateClock, 1000);
-
-  // Restore theme preference
   applyTheme();
+
+  // Default to card view on mobile
+  if (window.innerWidth <= 600) {
+    setView('card');
+  }
+
+  // Close sidebar when nav items clicked on mobile
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 900) closeSidebar();
+    });
+  });
 
   // Restore session if still active (page refresh)
   const saved = sessionStorage.getItem('carsrus_user');
@@ -1469,6 +1541,7 @@ async function loadRecords() {
     if (data.error) throw new Error(data.error);
     allRecords = formatRecords(data.records || []);
     hideConfigBanner();
+    updateCarrierList();
     filterRecords();
     updateStats();
   } catch (err) {
@@ -1551,8 +1624,14 @@ function sortBy(field, el) {
 
 function setFilterTab(filter) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-  event?.target?.classList.add('active');
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.trim() === filter ||
+      (filter === 'All' && t.textContent.trim() === 'All'));
+  });
+  // Find and activate the matching tab
+  document.querySelectorAll('.filter-tab').forEach(t => {
+    t.classList.toggle('active', t.textContent.trim() === filter);
+  });
   filterRecords();
 }
 
@@ -1584,14 +1663,12 @@ function renderTable() {
     const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
                         r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
     const rid = esc(r['Row ID']);
-    const checkIn = (r['Date'] && r['Time In']) ? esc(r['Date']) + '<br><span style="font-size:0.75rem">' + esc(r['Time In']) + '</span>' :
-                    esc(r['Date'] || r['Time In'] || '—');
     return '<tr class="data-row" data-rowid="' + rid + '" onclick="toggleExpandRow(event,this,\'' + rid + '\')">' +
       '<td><span class="queue-num">' + (r._displayPos || '—') + '</span></td>' +
       '<td><div class="driver-cell"><div class="name">' + esc(r['Driver Name']) + '</div><div class="carrier">' + esc(r['Driver Phone']) + '</div></div></td>' +
       '<td><div class="driver-cell"><div class="name">' + esc(r['Carrier']) + '</div><div class="carrier">' + esc(r['Carrier Phone'] || '') + '</div></div></td>' +
       '<td class="muted">' + esc(r['Lane'] || '—') + '</td>' +
-      '<td class="muted" style="line-height:1.4">' + checkIn + '</td>' +
+      '<td class="muted">' + esc(r['Time In'] || '—') + '</td>' +
       '<td class="muted">' + esc(r['Time Out'] || '—') + '</td>' +
       '<td style="text-align:center">' + (r['Drop Off'] || 0) + '</td>' +
       '<td style="text-align:center">' + (r['Pickup'] || 0) + '</td>' +
@@ -1642,7 +1719,7 @@ function toggleExpandRow(e, tr, rowId) {
     '<div class="card-fields">' +
       '<div class="card-field"><div class="cf-label">Driver Phone</div><div class="cf-val">' + esc(r['Driver Phone'] || '—') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Carrier Phone</div><div class="cf-val">' + esc(r['Carrier Phone'] || '—') + '</div></div>' +
-      '<div class="card-field"><div class="cf-label">Check In</div><div class="cf-val">' + esc(r['Date'] || '—') + ' ' + esc(r['Time In'] || '') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Time In</div><div class="cf-val">' + esc(r['Time In'] || '—') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Time Out</div><div class="cf-val">' + esc(r['Time Out'] || '—') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Drop Off</div><div class="cf-val">' + (r['Drop Off'] || 0) + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">' + (r['Pickup'] || 0) + '</div></div>' +
@@ -1698,7 +1775,7 @@ function renderCards() {
         </div>
       </div>
       <div class="card-fields">
-        <div class="card-field"><div class="cf-label">Check In</div><div class="cf-val">${esc(r['Date'] || '—')} ${esc(r['Time In'] || '')}</div></div>
+        <div class="card-field"><div class="cf-label">Time In</div><div class="cf-val">${esc(r['Time In'] || '—')}</div></div>
         <div class="card-field"><div class="cf-label">Time Out</div><div class="cf-val">${esc(r['Time Out'] || '—')}</div></div>
         <div class="card-field"><div class="cf-label">Drop Off</div><div class="cf-val">${r['Drop Off'] || 0}</div></div>
         <div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">${r['Pickup'] || 0}</div></div>
@@ -1911,39 +1988,20 @@ async function submitEdit() {
 }
 
 async function setStatus(rowId, status) {
-  closeCardModal();
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
+    // Update local record immediately so card view reflects change without waiting for reload
     const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
     if (idx !== -1) allRecords[idx]['Status'] = status;
     filterRecords();
     updateStats();
     showToast(`✓ Status updated to ${status}`, 'success');
+    // Then do a full reload in background to sync any other changes
     loadRecords();
   } catch (err) {
     showToast(`✗ Status update failed: ${err.message}`, 'error');
   }
 }
-
-// ========== SIDEBAR (MOBILE) ==========
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  sidebar.classList.toggle('open');
-  overlay.classList.toggle('show');
-}
-
-function closeSidebar() {
-  document.querySelector('.sidebar').classList.remove('open');
-  document.getElementById('sidebarOverlay').classList.remove('show');
-}
-
-// Close sidebar when any nav item is clicked on mobile
-document.querySelectorAll('.nav-item').forEach(item => {
-  item.addEventListener('click', () => {
-    if (window.innerWidth <= 900) closeSidebar();
-  });
-});
 
 // ========== SETTINGS ==========
 function openSettingsModal() {
