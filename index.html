@@ -788,17 +788,55 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 }
 .login-btn:hover { opacity: 0.88; }
 
+/* Hamburger button — mobile only */
+.hamburger {
+  display: none;
+  width: 36px; height: 36px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+.hamburger:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 150;
+}
+.sidebar-overlay.show { display: block; }
+
 /* Responsive */
 @media (max-width: 900px) {
-  .sidebar { display: none; }
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .hamburger { display: flex; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
-  .stats-row { grid-template-columns: 1fr 1fr; }
+  .stats-row { display: none; }
   .cards-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 10px 14px; }
-  .content { padding: 14px; }
-  .filter-tabs { display: none; }
+  .topbar { padding: 10px 14px; gap: 8px; }
+  .topbar-right { gap: 6px; }
+  .btn-checkin { padding: 8px 12px; font-size: 0.82rem; }
+  .btn-icon { padding: 7px 8px; font-size: 0.78rem; }
+  .filter-tabs { flex-wrap: wrap; }
+  .content { padding: 12px; }
 }
 </style>
 </head>
@@ -1102,6 +1140,9 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
   </div>
 </div>
 
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- ===== APP ===== -->
 <div class="app">
   <!-- Sidebar -->
@@ -1161,6 +1202,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
     </div>
     <!-- Topbar -->
     <div class="topbar">
+      <button type="button" class="hamburger" onclick="toggleSidebar()" title="Menu">☰</button>
       <div class="search-wrap">
         <span class="icon">🔍</span>
         <input class="search-input" type="text" id="searchInput" placeholder="Search drivers, carriers…" oninput="filterRecords()">
@@ -1223,7 +1265,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
                 <th onclick="sortBy('Driver Name', this)">Driver <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Carrier', this)">Carrier <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Lane', this)">Lane <span class="sort-arrow">↕</span></th>
-                <th onclick="sortBy('Time In', this)">Time In <span class="sort-arrow">↕</span></th>
+                <th onclick="sortBy('Check-In Timestamp', this)">Check In <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Time Out', this)">Time Out <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Drop Off', this)">Drop <span class="sort-arrow">↕</span></th>
                 <th onclick="sortBy('Pickup', this)">Pick <span class="sort-arrow">↕</span></th>
@@ -1512,12 +1554,14 @@ function renderTable() {
     const statusClass = r['Status'] === 'Waiting' ? 'status-waiting' :
                         r['Status'] === 'In Progress' ? 'status-progress' : 'status-completed';
     const rid = esc(r['Row ID']);
+    const checkIn = (r['Date'] && r['Time In']) ? esc(r['Date']) + '<br><span style="font-size:0.75rem">' + esc(r['Time In']) + '</span>' :
+                    esc(r['Date'] || r['Time In'] || '—');
     return '<tr class="data-row" data-rowid="' + rid + '" onclick="toggleExpandRow(event,this,\'' + rid + '\')">' +
       '<td><span class="queue-num">' + (r._displayPos || '—') + '</span></td>' +
       '<td><div class="driver-cell"><div class="name">' + esc(r['Driver Name']) + '</div><div class="carrier">' + esc(r['Driver Phone']) + '</div></div></td>' +
       '<td><div class="driver-cell"><div class="name">' + esc(r['Carrier']) + '</div><div class="carrier">' + esc(r['Carrier Phone'] || '') + '</div></div></td>' +
       '<td class="muted">' + esc(r['Lane'] || '—') + '</td>' +
-      '<td class="muted">' + esc(r['Time In'] || '—') + '</td>' +
+      '<td class="muted" style="line-height:1.4">' + checkIn + '</td>' +
       '<td class="muted">' + esc(r['Time Out'] || '—') + '</td>' +
       '<td style="text-align:center">' + (r['Drop Off'] || 0) + '</td>' +
       '<td style="text-align:center">' + (r['Pickup'] || 0) + '</td>' +
@@ -1568,7 +1612,7 @@ function toggleExpandRow(e, tr, rowId) {
     '<div class="card-fields">' +
       '<div class="card-field"><div class="cf-label">Driver Phone</div><div class="cf-val">' + esc(r['Driver Phone'] || '—') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Carrier Phone</div><div class="cf-val">' + esc(r['Carrier Phone'] || '—') + '</div></div>' +
-      '<div class="card-field"><div class="cf-label">Time In</div><div class="cf-val">' + esc(r['Time In'] || '—') + '</div></div>' +
+      '<div class="card-field"><div class="cf-label">Check In</div><div class="cf-val">' + esc(r['Date'] || '—') + ' ' + esc(r['Time In'] || '') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Time Out</div><div class="cf-val">' + esc(r['Time Out'] || '—') + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Drop Off</div><div class="cf-val">' + (r['Drop Off'] || 0) + '</div></div>' +
       '<div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">' + (r['Pickup'] || 0) + '</div></div>' +
@@ -1624,7 +1668,7 @@ function renderCards() {
         </div>
       </div>
       <div class="card-fields">
-        <div class="card-field"><div class="cf-label">Time In</div><div class="cf-val">${esc(r['Time In'] || '—')}</div></div>
+        <div class="card-field"><div class="cf-label">Check In</div><div class="cf-val">${esc(r['Date'] || '—')} ${esc(r['Time In'] || '')}</div></div>
         <div class="card-field"><div class="cf-label">Time Out</div><div class="cf-val">${esc(r['Time Out'] || '—')}</div></div>
         <div class="card-field"><div class="cf-label">Drop Off</div><div class="cf-val">${r['Drop Off'] || 0}</div></div>
         <div class="card-field"><div class="cf-label">Pickup</div><div class="cf-val">${r['Pickup'] || 0}</div></div>
@@ -1837,7 +1881,6 @@ async function submitEdit() {
 }
 
 async function setStatus(rowId, status) {
-  // Close the card modal immediately on click — don't wait for network
   closeCardModal();
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
@@ -1851,6 +1894,26 @@ async function setStatus(rowId, status) {
     showToast(`✗ Status update failed: ${err.message}`, 'error');
   }
 }
+
+// ========== SIDEBAR (MOBILE) ==========
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('show');
+}
+
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('show');
+}
+
+// Close sidebar when any nav item is clicked on mobile
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    if (window.innerWidth <= 900) closeSidebar();
+  });
+});
 
 // ========== SETTINGS ==========
 function openSettingsModal() {
