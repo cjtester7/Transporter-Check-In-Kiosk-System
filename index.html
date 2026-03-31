@@ -788,55 +788,85 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 }
 .login-btn:hover { opacity: 0.88; }
 
-/* Hamburger button — mobile only */
+/* Hamburger button */
 .hamburger {
   display: none;
-  width: 36px; height: 36px;
+  width: 38px; height: 38px;
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 8px;
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
-.hamburger:hover { border-color: var(--accent); color: var(--accent); }
 
 /* Sidebar overlay for mobile */
 .sidebar-overlay {
   display: none;
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
   z-index: 150;
 }
 .sidebar-overlay.show { display: block; }
 
-/* Responsive */
+/* ===== TABLET (≤900px) ===== */
 @media (max-width: 900px) {
   .sidebar {
     position: fixed;
     top: 0; left: 0;
-    height: 100vh;
+    height: 100%;
     z-index: 200;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.4);
   }
   .sidebar.open { transform: translateX(0); }
-  .hamburger { display: flex; }
+  .hamburger { display: flex !important; }
   .stats-row { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ===== MOBILE (≤600px) ===== */
 @media (max-width: 600px) {
-  .stats-row { display: none; }
-  .cards-grid { grid-template-columns: 1fr; }
-  .topbar { padding: 10px 14px; gap: 8px; }
-  .topbar-right { gap: 6px; }
+  /* Stats hidden */
+  .stats-row { display: none !important; }
+
+  /* Topbar stacks search on its own line */
+  .topbar {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .search-wrap {
+    order: 2;
+    width: 100%;
+    max-width: 100%;
+  }
+  .topbar-right {
+    order: 1;
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  /* Hide CSV button on mobile */
+  .btn-csv { display: none !important; }
+
+  /* Compact buttons */
   .btn-checkin { padding: 8px 12px; font-size: 0.82rem; }
-  .btn-icon { padding: 7px 8px; font-size: 0.78rem; }
-  .filter-tabs { flex-wrap: wrap; }
-  .content { padding: 12px; }
+  .btn-icon { padding: 7px 10px; font-size: 0.85rem; }
+
+  /* Cards */
+  .cards-grid { grid-template-columns: 1fr; }
+
+  /* Content padding */
+  .content { padding: 10px; }
+
+  /* Filter tabs wrap */
+  .filter-tabs { flex-wrap: wrap; gap: 4px; }
+  .filter-tab { font-size: 0.72rem; padding: 4px 10px; }
 }
 </style>
 </head>
@@ -1208,7 +1238,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
         <input class="search-input" type="text" id="searchInput" placeholder="Search drivers, carriers…" oninput="filterRecords()">
       </div>
       <div class="topbar-right">
-        <button type="button" class="btn-icon" onclick="exportCSV()" title="Export to CSV">⬇ CSV</button>
+        <button type="button" class="btn-icon btn-csv" onclick="exportCSV()" title="Export to CSV">⬇ CSV</button>
         <button type="button" class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark mode">🌙</button>
         <div class="view-toggle">
           <button class="view-btn active" id="btn-list" onclick="setView('list')">☰ List</button>
