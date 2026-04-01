@@ -947,6 +947,12 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
       <div style="font-size:0.78rem;color:var(--muted);margin-top:8px;line-height:1.6">
         The default URLs are hardcoded in the file and work on all devices automatically. Use this only to override them on this specific browser — for example, during testing or if the URL changes temporarily.
       </div>
+      <div class="m-divider"></div>
+      <div class="m-section-label">Audit Log</div>
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:12px;line-height:1.6">
+        The audit log records every check-in, check-out, status change and edit. It is stored in the <strong style="color:var(--text)">AuditLog</strong> tab in your Google Sheet.
+      </div>
+      <button type="button" class="modal-btn primary" onclick="exportAuditLog()" style="width:100%">⬇ Export Audit Log as CSV</button>
     </div>
     <div class="modal-footer">
       <button type="button" class="modal-btn secondary" onclick="closeModal('settingsModal')">Cancel</button>
@@ -1364,7 +1370,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 
 <script>
 // ========== CONFIG ==========
-const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCLcnaj7hpBmsSLOZnfaBV-rJKsEqYehOgIbILSr3jQwlYnW2p7v-HYB2gD3tgWxy_w/exec";
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzG-V1ywuZS3XUvOsq2PqvcDOfVLvgtIHWGl3fy34QHzS0FaqAydu6AiNDKcCCyNBwDjQ/exec";
 const DEFAULT_CHECKIN_URL = "YOUR_CHECKIN_URL_HERE";
 let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || DEFAULT_APPS_SCRIPT_URL;
 let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || DEFAULT_CHECKIN_URL;
@@ -1963,6 +1969,7 @@ async function submitEdit() {
     await callScript({
       action: "updateRecord",
       "rowId": selectedRowId,
+      "changedBy": currentUser ? currentUser.displayName : "",
       "Driver Name": document.getElementById('ed-driverName').value.trim(),
       "Driver Phone": document.getElementById('ed-driverPhone').value.trim(),
       "Carrier": document.getElementById('ed-carrier').value.trim(),
@@ -1991,7 +1998,7 @@ async function submitEdit() {
 async function setStatus(rowId, status) {
   closeCardModal();
   try {
-    await callScript({ action: "updateStatus", "rowId": rowId, "status": status });
+    await callScript({ action: "updateStatus", "rowId": rowId, "status": status, "changedBy": currentUser ? currentUser.displayName : "" });
     const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
     if (idx !== -1) allRecords[idx]['Status'] = status;
     filterRecords();
@@ -2099,6 +2106,49 @@ function exportCSV() {
     URL.revokeObjectURL(url);
   }, 250);
   showToast(`✓ Exported as ${filename}`, 'success');
+}
+
+async function exportAuditLog() {
+  showToast('Fetching audit log...', 'success');
+  try {
+    const res = await callScript({ action: 'getAuditLog' });
+    if (res.error) throw new Error(res.error);
+    const rows = res.rows || [];
+    if (!rows.length) {
+      showToast('No audit log entries found.', 'error');
+      return;
+    }
+
+    const columns = ['Timestamp', 'Action', 'Row ID', 'Driver Name', 'Carrier', 'Changed By', 'Changes', 'Previous Values'];
+    const escCsv = val => {
+      const s = String(val ?? '');
+      return s.includes(',') || s.includes('"') || s.includes('\n')
+        ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csvRows = [
+      columns.join(','),
+      ...rows.map(r => columns.map(c => escCsv(r[c])).join(','))
+    ];
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const dateStr = pad(now.getMonth()+1) + pad(now.getDate()) + now.getFullYear();
+    const timeStr = pad(now.getHours()) + pad(now.getMinutes());
+    const filename = 'auditlog-' + dateStr + '-' + timeStr + '.csv';
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 250);
+    showToast('✓ Exported as ' + filename, 'success');
+  } catch(err) {
+    showToast('✗ Export failed: ' + err.message, 'error');
+  }
 }
 
 // ========== UTILS ==========
