@@ -1582,15 +1582,24 @@ function filterRecords() {
 
   // Sort
   filteredRecords.sort((a, b) => {
-    // Always sort active records by check-in timestamp for correct chronological order
+    const aCompleted = a['Status'] === 'Completed';
+    const bCompleted = b['Status'] === 'Completed';
+
+    // Completed records always sort newest first by timestamp, regardless of sort field
+    if (aCompleted && bCompleted) {
+      const aTs = Number(a['Check-In Timestamp']) || 0;
+      const bTs = Number(b['Check-In Timestamp']) || 0;
+      return bTs - aTs; // newest first
+    }
+    // Active records sort to top, completed to bottom
+    if (aCompleted && !bCompleted) return 1;
+    if (!aCompleted && bCompleted) return -1;
+
+    // Both active — sort by queue timestamp chronologically
     if (sortField === 'Queue Position') {
-      const aActive = a['Status'] === 'Waiting' || a['Status'] === 'In Progress';
-      const bActive = b['Status'] === 'Waiting' || b['Status'] === 'In Progress';
-      if (aActive && bActive) {
-        const aTs = Number(a['Check-In Timestamp']) || 0;
-        const bTs = Number(b['Check-In Timestamp']) || 0;
-        return sortAsc ? aTs - bTs : bTs - aTs;
-      }
+      const aTs = Number(a['Check-In Timestamp']) || 0;
+      const bTs = Number(b['Check-In Timestamp']) || 0;
+      return sortAsc ? aTs - bTs : bTs - aTs;
     }
     let av = a[sortField] || '', bv = b[sortField] || '';
     if (!isNaN(av) && !isNaN(bv)) { av = Number(av); bv = Number(bv); }
@@ -1598,15 +1607,13 @@ function filterRecords() {
     return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
   });
 
-  // Assign sequential display position numbers within the filtered view.
-  // Only renumber active records (Waiting/In Progress) — Completed records
-  // show their original queue position for reference.
+  // Active records get sequential display positions; completed show blank
   let displayPos = 1;
   filteredRecords.forEach(r => {
     if (r['Status'] === 'Waiting' || r['Status'] === 'In Progress') {
       r._displayPos = displayPos++;
     } else {
-      r._displayPos = r['Queue Position'];
+      r._displayPos = null; // blank for completed
     }
   });
 
@@ -1623,11 +1630,6 @@ function sortBy(field, el) {
 
 function setFilterTab(filter) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-tab').forEach(t => {
-    t.classList.toggle('active', t.textContent.trim() === filter ||
-      (filter === 'All' && t.textContent.trim() === 'All'));
-  });
-  // Find and activate the matching tab
   document.querySelectorAll('.filter-tab').forEach(t => {
     t.classList.toggle('active', t.textContent.trim() === filter);
   });
@@ -1710,7 +1712,7 @@ function toggleExpandRow(e, tr, rowId) {
         '<div class="card-carrier">' + esc(r['Carrier']) + '</div>' +
       '</div>' +
       '<div style="text-align:right">' +
-        '<div class="card-queue">#' + (r._displayPos || '?') + '</div>' +
+        '<div class="card-queue">' + (r._displayPos ? '#' + r._displayPos : '—') + '</div>' +
         '<span class="status-badge ' + statusClass + '">' + esc(r['Status']) + '</span>' +
       '</div>' +
     '</div>' +
@@ -1754,6 +1756,7 @@ function closeCardModal() {
 function renderCards() {
   const grid = document.getElementById('cardsGrid');
   if (!filteredRecords.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><div style="font-size:2rem;margin-bottom:12px">🚛</div><p>No records found</p></div>';
     return;
   }
 
@@ -1768,7 +1771,7 @@ function renderCards() {
           <div class="card-carrier">${esc(r['Carrier'])}</div>
         </div>
         <div style="text-align:right">
-          <div class="card-queue">#${r._displayPos || '?'}</div>
+          <div class="card-queue">${r._displayPos ? '#' + r._displayPos : '—'}</div>
           <span class="status-badge ${statusClass}">${esc(r['Status'])}</span>
         </div>
       </div>
