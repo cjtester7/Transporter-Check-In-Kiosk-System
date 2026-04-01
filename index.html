@@ -788,6 +788,8 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 }
 .login-btn:hover { opacity: 0.88; }
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ===== FILTER BAR ===== */
 .filter-bar {
   display: flex;
@@ -1370,7 +1372,7 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 
 <script>
 // ========== CONFIG ==========
-const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbx4yrXIyJS2x6w-RAVmzKWPnxrqnFRiPyMbTk8BJktTszKQ1QmbuY1OYBrUygHx8YqTog/exec";
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbCLcnaj7hpBmsSLOZnfaBV-rJKsEqYehOgIbILSr3jQwlYnW2p7v-HYB2gD3tgWxy_w/exec";
 const DEFAULT_CHECKIN_URL = "YOUR_CHECKIN_URL_HERE";
 let APPS_SCRIPT_URL = localStorage.getItem('carsrus_script_url') || DEFAULT_APPS_SCRIPT_URL;
 let CHECKIN_URL = localStorage.getItem('carsrus_checkin_url') || DEFAULT_CHECKIN_URL;
@@ -1493,7 +1495,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!currentUser) return;
     const modalOpen = ['checkinModal','checkoutModal','editModal']
       .some(id => document.getElementById(id).classList.contains('open'));
-    if (!modalOpen) loadRecords();
+    if (!modalOpen) loadRecords(true);
   }, 60000);
 });
 
@@ -1535,10 +1537,17 @@ function formatRecords(records) {
   }));
 }
 
-async function loadRecords() {
+async function loadRecords(silent = false) {
   if (!APPS_SCRIPT_URL) {
     showConfigBanner();
     return;
+  }
+  // Show skeleton only on first load when no records exist yet
+  if (!silent && !allRecords.length) {
+    document.getElementById('tableBody').innerHTML =
+      '<tr class="loading-row"><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)"><span style="display:inline-block;animation:spin 0.8s linear infinite;font-size:1.2rem">⟳</span> Loading records…</td></tr>';
+    document.getElementById('cardsGrid').innerHTML =
+      '<div style="text-align:center;padding:60px 20px;color:var(--muted)"><span style="display:inline-block;animation:spin 0.8s linear infinite;font-size:1.5rem">⟳</span></div>';
   }
   try {
     const res = await fetch(`${APPS_SCRIPT_URL}?action=getAll`);
@@ -1550,8 +1559,7 @@ async function loadRecords() {
     filterRecords();
     updateStats();
   } catch (err) {
-    // Never wipe existing records on a failed refresh — just show a warning
-    showToast('⚠ Could not reach Google Sheet. Showing last known data.', 'error');
+    if (!silent) showToast('⚠ Could not reach Google Sheet. Showing last known data.', 'error');
     filterRecords();
     updateStats();
   }
@@ -1907,10 +1915,10 @@ async function callScript(payload) {
 }
 
 async function submitCheckin() {
-  const name = document.getElementById('ci-driverName').value.trim();
-  const phone = document.getElementById('ci-driverPhone').value.trim();
+  const name    = document.getElementById('ci-driverName').value.trim();
+  const phone   = document.getElementById('ci-driverPhone').value.trim();
   const carrier = document.getElementById('ci-carrier').value.trim();
-  const signedBy = document.getElementById('ci-signedInBy').value.trim();
+  const signedBy= document.getElementById('ci-signedInBy').value.trim();
 
   if (!name || !phone || !carrier || !signedBy) {
     showToast('Please fill in all required fields.', 'error');
@@ -1921,26 +1929,33 @@ async function submitCheckin() {
     return;
   }
 
+  const payload = {
+    action: "checkIn",
+    "Driver Name":  name,
+    "Driver Phone": phone,
+    "Carrier":      carrier,
+    "Carrier Phone":document.getElementById('ci-carrierPhone').value.trim(),
+    "Gate":         document.getElementById('ci-gate').value,
+    "Lane":         document.getElementById('ci-lane').value.trim(),
+    "Drop Off":     document.getElementById('ci-dropOff').value,
+    "Pickup":       document.getElementById('ci-pickup').value,
+    "Vehicle Types":document.getElementById('ci-vehicleTypes').value,
+    "Comments":     document.getElementById('ci-comments').value.trim(),
+    "Signed In By": signedBy
+  };
+
+  // Close modal immediately — don't wait for server
+  closeModal('checkinModal');
+  showToast('✓ ' + name + ' — checking in...', 'success');
+
   try {
-    const data = await callScript({
-      action: "checkIn",
-      "Driver Name": name,
-      "Driver Phone": phone,
-      "Carrier": carrier,
-      "Carrier Phone": document.getElementById('ci-carrierPhone').value.trim(),
-      "Gate": document.getElementById('ci-gate').value,
-      "Lane": document.getElementById('ci-lane').value.trim(),
-      "Drop Off": document.getElementById('ci-dropOff').value,
-      "Pickup": document.getElementById('ci-pickup').value,
-      "Vehicle Types": document.getElementById('ci-vehicleTypes').value,
-      "Comments": document.getElementById('ci-comments').value.trim(),
-      "Signed In By": signedBy
-    });
-    closeModal('checkinModal');
-    showToast(`✓ ${name} checked in — Queue #${data.queuePosition}`, 'success');
+    const data = await callScript(payload);
+    showToast('✓ ' + name + ' checked in — Queue #' + data.queuePosition, 'success');
+    // Full reload after check-in to get server-assigned Row ID and queue position
     loadRecords();
   } catch (err) {
-    showToast(`✗ Save failed: ${err.message}`, 'error');
+    showToast('✗ Check-in failed: ' + err.message, 'error');
+    loadRecords();
   }
 }
 
@@ -1950,63 +1965,92 @@ async function submitCheckout() {
     showToast('Please enter who is signing the driver out.', 'error');
     return;
   }
+  // Optimistic update — apply immediately
+  const idx = allRecords.findIndex(r => r['Row ID'] === selectedRowId);
+  const snapshot = idx !== -1 ? { ...allRecords[idx] } : null;
+  if (idx !== -1) {
+    const now = new Date();
+    allRecords[idx]['Status'] = 'Completed';
+    allRecords[idx]['Signed Out By'] = signedBy;
+    allRecords[idx]['Time Out'] = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    allRecords[idx]['Queue Position'] = '';
+  }
+  closeModal('checkoutModal');
+  filterRecords();
+  updateStats();
+  showToast('✓ Driver checked out successfully', 'success');
+  // Fire server call in background — roll back on failure
   try {
-    await callScript({
-      action: "checkOut",
-      "rowId": selectedRowId,
-      "Signed Out By": signedBy
-    });
-    closeModal('checkoutModal');
-    showToast('✓ Driver checked out successfully', 'success');
-    loadRecords();
+    await callScript({ action: "checkOut", "rowId": selectedRowId, "Signed Out By": signedBy });
   } catch (err) {
-    showToast(`✗ Check out failed: ${err.message}`, 'error');
+    if (idx !== -1 && snapshot) allRecords[idx] = snapshot;
+    filterRecords();
+    updateStats();
+    showToast('✗ Check out failed: ' + err.message, 'error');
   }
 }
 
 async function submitEdit() {
+  const updates = {
+    "Driver Name":  document.getElementById('ed-driverName').value.trim(),
+    "Driver Phone": document.getElementById('ed-driverPhone').value.trim(),
+    "Carrier":      document.getElementById('ed-carrier').value.trim(),
+    "Carrier Phone":document.getElementById('ed-carrierPhone').value.trim(),
+    "Date":         document.getElementById('ed-date').value.trim(),
+    "Time Out":     document.getElementById('ed-timeOut').value.trim(),
+    "Gate":         document.getElementById('ed-gate').value,
+    "Lane":         document.getElementById('ed-lane').value.trim(),
+    "Queue Position":document.getElementById('ed-queuePos').value,
+    "Status":       document.getElementById('ed-status').value,
+    "Drop Off":     document.getElementById('ed-dropOff').value,
+    "Pickup":       document.getElementById('ed-pickup').value,
+    "Vehicle Types":document.getElementById('ed-vehicleTypes').value,
+    "Comments":     document.getElementById('ed-comments').value.trim(),
+    "Signed In By": document.getElementById('ed-signedInBy').value.trim(),
+    "Signed Out By":document.getElementById('ed-signedOutBy').value.trim()
+  };
+  // Optimistic update — apply immediately
+  const idx = allRecords.findIndex(r => r['Row ID'] === selectedRowId);
+  const snapshot = idx !== -1 ? { ...allRecords[idx] } : null;
+  if (idx !== -1) Object.assign(allRecords[idx], updates);
+  closeModal('editModal');
+  filterRecords();
+  updateStats();
+  showToast('✓ Record updated', 'success');
+  // Fire server call in background — roll back on failure
   try {
     await callScript({
       action: "updateRecord",
       "rowId": selectedRowId,
       "changedBy": currentUser ? currentUser.displayName : "",
-      "Driver Name": document.getElementById('ed-driverName').value.trim(),
-      "Driver Phone": document.getElementById('ed-driverPhone').value.trim(),
-      "Carrier": document.getElementById('ed-carrier').value.trim(),
-      "Carrier Phone": document.getElementById('ed-carrierPhone').value.trim(),
-      "Date": document.getElementById('ed-date').value.trim(),
-      "Time Out": document.getElementById('ed-timeOut').value.trim(),
-      "Gate": document.getElementById('ed-gate').value,
-      "Lane": document.getElementById('ed-lane').value.trim(),
-      "Queue Position": document.getElementById('ed-queuePos').value,
-      "Status": document.getElementById('ed-status').value,
-      "Drop Off": document.getElementById('ed-dropOff').value,
-      "Pickup": document.getElementById('ed-pickup').value,
-      "Vehicle Types": document.getElementById('ed-vehicleTypes').value,
-      "Comments": document.getElementById('ed-comments').value.trim(),
-      "Signed In By": document.getElementById('ed-signedInBy').value.trim(),
-      "Signed Out By": document.getElementById('ed-signedOutBy').value.trim()
+      ...updates
     });
-    closeModal('editModal');
-    showToast('✓ Record updated', 'success');
-    loadRecords();
   } catch (err) {
-    showToast(`✗ Update failed: ${err.message}`, 'error');
+    if (idx !== -1 && snapshot) allRecords[idx] = snapshot;
+    filterRecords();
+    updateStats();
+    showToast('✗ Update failed: ' + err.message, 'error');
   }
 }
 
 async function setStatus(rowId, status) {
   closeCardModal();
+  // Optimistic update — apply immediately before server confirms
+  const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
+  const prevStatus = idx !== -1 ? allRecords[idx]['Status'] : null;
+  if (idx !== -1) allRecords[idx]['Status'] = status;
+  filterRecords();
+  updateStats();
+  showToast('✓ Status updated to ' + status, 'success');
+  // Fire server call in background — roll back on failure
   try {
     await callScript({ action: "updateStatus", "rowId": rowId, "status": status, "changedBy": currentUser ? currentUser.displayName : "" });
-    const idx = allRecords.findIndex(r => r['Row ID'] === rowId);
-    if (idx !== -1) allRecords[idx]['Status'] = status;
+  } catch (err) {
+    // Roll back
+    if (idx !== -1 && prevStatus) allRecords[idx]['Status'] = prevStatus;
     filterRecords();
     updateStats();
-    showToast(`✓ Status updated to ${status}`, 'success');
-    loadRecords();
-  } catch (err) {
-    showToast(`✗ Status update failed: ${err.message}`, 'error');
+    showToast('✗ Status update failed: ' + err.message, 'error');
   }
 }
 
