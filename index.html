@@ -840,8 +840,8 @@ tbody tr.data-row.expanded { background: rgba(240,180,41,0.06); }
 
 /* ===== MOBILE (≤600px) ===== */
 @media (max-width: 600px) {
-  /* Viewport */
-  html { -webkit-text-size-adjust: 100%; }
+  /* Larger base font — scales all rem units up */
+  html { font-size: 18px !important; -webkit-text-size-adjust: 100%; }
 
   /* Hide stats */
   .stats-row { display: none !important; }
