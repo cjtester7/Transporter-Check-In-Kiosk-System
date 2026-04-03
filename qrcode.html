@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarsRUs — Driver Check-In QR Code</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a24;
+    --surface2: #1e2433;
+    --border: #2a3045;
+    --accent: #f0b429;
+    --text: #eef0f6;
+    --muted: #7a8299;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 16px;
+  }
+
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 60px;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 2.8rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .brand span { color: #fff; }
+  .brand-sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ===== URL INPUT ===== */
+  .url-section {
+    width: 100%;
+    max-width: 560px;
+    margin-bottom: 32px;
+  }
+  .url-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .url-input-wrap {
+    display: flex;
+    gap: 10px;
+  }
+  .url-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .url-input:focus { border-color: var(--accent); }
+  .url-input::placeholder { color: var(--muted); }
+  .btn-generate {
+    padding: 14px 22px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .btn-generate:hover { opacity: 0.88; }
+  .url-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ===== QR CARD ===== */
+  .qr-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 36px 40px 32px;
+    text-align: center;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: none;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .qr-card.visible { display: block; }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.92) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .qr-card-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 900;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
+    color: #f0b429;
+    margin-bottom: 4px;
+  }
+  .qr-card-brand span { color: #0d0f14; }
+  .qr-card-sub {
+    font-size: 0.68rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7a8299;
+    margin-bottom: 24px;
+  }
+
+  .qr-divider {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #f0b429, transparent);
+    margin: 0 auto 24px;
+    width: 80%;
+  }
+
+  #qrCodeContainer {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  #qrCodeContainer canvas,
+  #qrCodeContainer img {
+    border-radius: 8px;
+  }
+
+  .qr-instruction {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #0d0f14;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .qr-sub-instruction {
+    font-size: 0.8rem;
+    color: #7a8299;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .qr-divider-bottom {
+    height: 1px;
+    background: #e8ebf0;
+    margin: 0 auto 16px;
+  }
+
+  .qr-url-display {
+    font-size: 0.65rem;
+    color: #aab0c0;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+  }
+
+  /* ===== ACTIONS ===== */
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn-print {
+    padding: 13px 28px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-print:hover { opacity: 0.88; }
+  .btn-download {
+    padding: 13px 28px;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-download:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== EMPTY STATE ===== */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+  .empty-text { font-size: 0.9rem; line-height: 1.6; }
+
+  /* ===== PRINT STYLES ===== */
+  @media print {
+    body { background: #fff !important; }
+    .page { padding: 0; }
+    .header, .url-section, .actions, .empty-state { display: none !important; }
+    .qr-card {
+      display: block !important;
+      box-shadow: none;
+      margin: 0 auto;
+      max-width: 100%;
+      padding: 40px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="brand">CARS<span>RUS</span></div>
+    <div class="brand-sub">Driver Check-In QR Generator</div>
+  </div>
+
+  <div class="url-section">
+    <label class="url-label" for="urlInput">Check-In Page URL</label>
+    <div class="url-input-wrap">
+      <input
+        type="url"
+        id="urlInput"
+        class="url-input"
+        placeholder="https://your-site.netlify.app/checkin-v3.html"
+        oninput="onUrlInput()"
+      >
+      <button type="button" class="btn-generate" onclick="generateQR()">Generate</button>
+    </div>
+    <div class="url-hint">Paste your Netlify check-in URL above. The QR code updates as you type.</div>
+  </div>
+
+  <!-- QR Card (shown after generation) -->
+  <div class="qr-card" id="qrCard">
+    <div class="qr-card-brand">CARS<span>RUS</span></div>
+    <div class="qr-card-sub">Transporter Self Check-In</div>
+    <div class="qr-divider"></div>
+    <div id="qrCodeContainer"></div>
+    <div class="qr-instruction">Scan to Check In</div>
+    <div class="qr-sub-instruction">
+      Use your phone camera or QR scanner.<br>
+      No app download required.
+    </div>
+    <div class="qr-divider-bottom"></div>
+    <div class="qr-url-display" id="qrUrlDisplay"></div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">📱</div>
+    <div class="empty-text">Enter your check-in page URL above<br>to generate a printable QR code.</div>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="actions" id="actionBtns" style="display:none">
+    <button type="button" class="btn-print" onclick="window.print()">🖨 Print QR Code</button>
+    <button type="button" class="btn-download" onclick="downloadQR()">⬇ Download PNG</button>
+  </div>
+
+</div>
+
+<script>
+let debounceTimer = null;
+let currentUrl = '';
+
+function onUrlInput() {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const val = document.getElementById('urlInput').value.trim();
+    if (val && val !== currentUrl) generateQR();
+  }, 600);
+}
+
+function generateQR() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) {
+    document.getElementById('urlInput').style.borderColor = 'var(--red, #ef4444)';
+    return;
+  }
+  document.getElementById('urlInput').style.borderColor = '';
+  currentUrl = url;
+
+  // Clear previous QR
+  const container = document.getElementById('qrCodeContainer');
+  container.innerHTML = '';
+
+  // Generate new QR code
+  new QRCode(container, {
+    text: url,
+    width: 240,
+    height: 240,
+    colorDark: '#0d0f14',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
+
+  // Update URL display
+  document.getElementById('qrUrlDisplay').textContent = url;
+
+  // Show card and actions
+  document.getElementById('qrCard').classList.add('visible');
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('actionBtns').style.display = 'flex';
+}
+
+function downloadQR() {
+  const canvas = document.querySelector('#qrCodeContainer canvas');
+  if (!canvas) {
+    alert('Please generate a QR code first.');
+    return;
+  }
+  // Create a larger canvas with branding for download
+  const out = document.createElement('canvas');
+  out.width = 600;
+  out.height = 700;
+  const ctx = out.getContext('2d');
+
+  // Background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, out.width, out.height);
+
+  // Gold accent bar at top
+  ctx.fillStyle = '#f0b429';
+  ctx.fillRect(0, 0, out.width, 8);
+
+  // Brand text
+  ctx.fillStyle = '#f0b429';
+  ctx.font = 'bold 52px "Barlow Condensed", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('CARSRUS', out.width / 2, 80);
+
+  ctx.fillStyle = '#7a8299';
+  ctx.font = '14px "Barlow", sans-serif';
+  ctx.fillText('TRANSPORTER SELF CHECK-IN', out.width / 2, 108);
+
+  // Divider
+  ctx.fillStyle = '#e8ebf0';
+  ctx.fillRect(60, 124, out.width - 120, 1);
+
+  // QR code — scale up to 300x300
+  ctx.drawImage(canvas, (out.width - 300) / 2, 140, 300, 300);
+
+  // Instruction text
+  ctx.fillStyle = '#0d0f14';
+  ctx.font = 'bold 28px "Barlow Condensed", sans-serif';
+  ctx.fillText('SCAN TO CHECK IN', out.width / 2, 490);
+
+  ctx.fillStyle = '#7a8299';
+  ctx.font = '14px "Barlow", sans-serif';
+  ctx.fillText('Use your phone camera or QR scanner', out.width / 2, 516);
+  ctx.fillText('No app download required', out.width / 2, 536);
+
+  // Divider
+  ctx.fillStyle = '#e8ebf0';
+  ctx.fillRect(60, 558, out.width - 120, 1);
+
+  // URL
+  ctx.fillStyle = '#aab0c0';
+  ctx.font = '11px monospace';
+  const urlText = currentUrl.length > 60 ? currentUrl.slice(0, 57) + '...' : currentUrl;
+  ctx.fillText(urlText, out.width / 2, 580);
+
+  // Gold accent bar at bottom
+  ctx.fillStyle = '#f0b429';
+  ctx.fillRect(0, out.height - 8, out.width, 8);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = 'carsrus-checkin-qr.png';
+  link.href = out.toDataURL('image/png');
+  link.click();
+}
+</script>
+</body>
+</html>
