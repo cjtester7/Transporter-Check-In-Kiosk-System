@@ -4,7 +4,7 @@
 
 // ============================================================
 // CONFIGURATION
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w";
 const MASTER_ADMIN_USERNAME = "superadmin";
 const MASTER_ADMIN_PASSWORD = "changeme123";
 // ============================================================
@@ -90,7 +90,21 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  return doGet(e);
+  const output = ContentService.createTextOutput();
+  output.setMimeType(ContentService.MimeType.JSON);
+  try {
+    const body = JSON.parse(e.postData.contents);
+    const action = body.action;
+    let result;
+    switch (action) {
+      case "uploadPhoto": result = uploadPhoto(body); break;
+      default: result = doGet(e); // fall back to GET handler for other actions
+    }
+    output.setContent(JSON.stringify(result));
+  } catch (err) {
+    output.setContent(JSON.stringify({ error: err.message }));
+  }
+  return output;
 }
 
 // ============================================================
