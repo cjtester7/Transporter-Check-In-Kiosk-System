@@ -13,7 +13,7 @@ repository  = "GitHub"
 # ============================================================
 
 [current]
-dashboard   = "index-v45.html"
+dashboard   = "index-v46.html"
 kiosk       = "checkin-v4.html"
 appscript   = "appscript-v16.gs"
 qrcode      = "qrcode-v1.html"
@@ -24,10 +24,20 @@ versions    = "versions.toml"
 # ============================================================
 
 [[dashboard]]
+version  = "v46"
+file     = "index-v46.html"
+date     = "2026-04-07"
+status   = "current"
+changes  = [
+  "Fix: card grid view cards are now clickable — opens card modal with Notes and Photos",
+  "Add: openCardModal function works from both list and card grid views",
+]
+
+[[dashboard]]
 version  = "v45"
 file     = "index-v45.html"
 date     = "2026-04-07"
-status   = "current"
+status   = "superseded"
 changes  = [
   "Add: Notes section in card modal — employees and admins only",
   "Add: Photos section in card modal — multi-upload, thumbnail grid, Drive storage",
