@@ -4,7 +4,7 @@
 
 // ============================================================
 // CONFIGURATION
-const SHEET_URL = "const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1fAcPohNPc32egYUeLq3SbZGZnEufQNrggM0xTpn9a2w/edit";
 const MASTER_ADMIN_USERNAME = "superadmin";
 const MASTER_ADMIN_PASSWORD = "changeme123";
 // ============================================================
